@@ -1,0 +1,19 @@
+{
+  "name": "ooo-legal-conferences",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OOO (Orient Occidental Organisers Pte Ltd) — legal conference website with an AI-assisted conference generator. Static site + Vercel serverless functions.",
+  "scripts": {
+    "dev": "node scripts/dev.js",
+    "test": "node tests/engine.test.js && node tests/ai.test.js",
+    "build:seed": "node scripts/build-seed.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@vercel/blob": "^2.8.0",
+    "zod": "^4.6.5"
+  }
+}

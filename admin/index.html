@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard · OOO Organiser Console</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0F1B2D">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+<script>(function(){try{var t=localStorage.getItem('ooo.theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body data-page="admin">
+<header data-site-header></header>
+<main id="main">
+<div class="console">
+  <aside class="console-side">
+    <p class="eyebrow">Organiser console</p>
+    <nav class="console-nav" aria-label="Console">
+      <button data-view="overview" class="active">Overview</button>
+      <button data-view="conferences">Conferences</button>
+      <a href="/admin/generator">Conference generator</a>
+      <button data-view="inbox">Inbox</button>
+      <button data-view="settings">Settings</button>
+      <a href="/">← Public site</a>
+    </nav>
+  </aside>
+  <div class="console-main">
+    <div id="gate" class="hide"></div>
+    <div id="console-body">
+      <div class="console-head"><div><p class="eyebrow">OOO · Orient Occidental Organisers</p><h1 id="view-title">Overview</h1></div><div class="status-pills" id="status-pills"></div></div>
+      <section class="view active" id="view-overview"></section>
+      <section class="view" id="view-conferences"></section>
+      <section class="view" id="view-inbox"></section>
+      <section class="view" id="view-settings"></section>
+    </div>
+  </div>
+</div>
+</main>
+<script src="/assets/js/data.js"></script>
+<script src="/assets/js/conferences.js"></script>
+<script src="/assets/js/engine.js"></script>
+<script src="/assets/js/store.js"></script>
+<script src="/assets/js/ui.js"></script>
+<script src="/assets/js/admin.js"></script>
+</body>
+</html>

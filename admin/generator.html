@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conference generator · OOO Organiser Console</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0F1B2D">
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="/assets/css/admin.css">
+<script>(function(){try{var t=localStorage.getItem('ooo.theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+</head>
+<body data-page="generator">
+<header data-site-header></header>
+<main id="main">
+<div class="console">
+  <aside class="console-side">
+    <p class="eyebrow">Organiser console</p>
+    <nav class="console-nav" aria-label="Console">
+      <a href="/admin">Overview</a>
+      <a href="/admin#conferences">Conferences</a>
+      <a href="/admin/generator" class="active">Conference generator</a>
+      <a href="/admin#inbox">Inbox</a>
+      <a href="/admin#settings">Settings</a>
+      <a href="/">← Public site</a>
+    </nav>
+    <div class="mt-4 small muted" id="side-summary"></div>
+  </aside>
+  <div class="console-main">
+    <div id="gate" class="hide"></div>
+    <div id="console-body">
+      <div class="console-head"><div><p class="eyebrow">Conference generator</p><h1>Plan a new conference</h1><p class="muted mb-0">Choose a theme, set the dates and location, add speakers, and generate a fully planned programme with pages, booking, hotel and sponsorship links.</p></div><div class="status-pills" id="status-pills"></div></div>
+      <div class="steps" id="steps"></div>
+      <div id="wizard"></div>
+    </div>
+  </div>
+</div>
+</main>
+<script src="/assets/js/data.js"></script>
+<script src="/assets/js/conferences.js"></script>
+<script src="/assets/js/engine.js"></script>
+<script src="/assets/js/store.js"></script>
+<script src="/assets/js/ui.js"></script>
+<script src="/assets/js/admin.js"></script>
+</body>
+</html>
