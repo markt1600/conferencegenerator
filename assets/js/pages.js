@@ -364,7 +364,7 @@
       if (cid) { const c = Store.get(cid); const ids = c ? Engine.allSpeakerIds(c) : []; list = list.filter((s) => ids.indexOf(s.id) >= 0); }
       if (ex) list = list.filter((s) => (s.expertise || []).indexOf(ex) >= 0);
       if (q) list = list.filter((s) => (s.name + ' ' + s.org + ' ' + s.title + ' ' + (s.expertise || []).join(' ') + ' ' + (s.location || '')).toLowerCase().indexOf(q) >= 0);
-      html('#grid', list.length ? list.map((s) => UI.speakerCard(s, { note: s._appearances ? s._appearances + ' OOO programme' + (s._appearances === 1 ? '' : 's') : '' })).join('') : '<div class="empty">No speakers match.</div>');
+      html('#grid', list.length ? list.map((s) => UI.speakerCard(s, { note: s._appearances ? 'Spoke at ' + s._appearances + ' programme' + (s._appearances === 1 ? '' : 's') : '' })).join('') : '<div class="empty">No speakers match.</div>');
       $('#count').textContent = list.length + ' speaker' + (list.length === 1 ? '' : 's');
     };
     ['#q', '#f-conf', '#f-exp'].forEach((s) => $(s).addEventListener('input', apply));
@@ -393,7 +393,7 @@
         (past.length ? '<h2 class="mt-6">Past OOO appearances</h2><div style="display:grid;gap:1rem">' + past.map(appMarkup).join('') + '</div>' : '') +
         (!apps.length ? '<div class="empty mt-4">No programme appearances recorded yet.</div>' : '') +
       '</div><aside>' +
-        '<div class="aside-card"><h3>At a glance</h3><dl class="kv"><dt>Role</dt><dd>' + esc(s.title) + '</dd><dt>Organisation</dt><dd>' + esc(s.org) + '</dd>' + (s.location ? '<dt>Based in</dt><dd>' + esc(s.location) + '</dd>' : '') + '<dt>OOO programmes</dt><dd>' + apps.length + '</dd></dl></div>' +
+        '<div class="aside-card"><h3>At a glance</h3><dl class="kv"><dt>Role</dt><dd>' + esc(s.title) + '</dd><dt>Organisation</dt><dd>' + esc(s.org) + '</dd>' + (s.location ? '<dt>Based in</dt><dd>' + esc(s.location) + '</dd>' : '') + '<dt>Programmes with OOO</dt><dd>' + apps.length + '</dd></dl></div>' +
         (related.length ? '<div class="aside-card"><h3>Related speakers</h3>' + related.map((r) => '<div class="mb-2">' + UI.speakerChip(r) + '</div>').join('') + '</div>' : '') +
         '<div class="aside-card"><h3>Invite to speak</h3><p class="small muted">Our programme team can request availability for your own event or a private briefing.</p><a class="btn btn-outline w-full" href="' + url('contact') + '?speaker=' + encodeURIComponent(s.id) + '#general">Contact programme team</a></div>' +
       '</aside></div></section>');
