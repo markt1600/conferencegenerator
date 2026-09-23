@@ -676,7 +676,14 @@
       }
       return out;
     };
-    const chairs = suppliedIds.slice(0, 2).concat(speakerIds.filter((x) => suppliedIds.indexOf(x) < 0)).slice(0, Math.min(2, speakerIds.length));
+    // Chairs: speakers the organiser flagged with chair: true. Otherwise the first two supplied speakers chair,
+    // unless brief.suppliedChairs is false, in which case chairs are proposed from the rest of the faculty
+    // (placeholders the organiser replaces) and supplied speakers keep the keynote and panel slots only.
+    const flaggedChairs = speakers.filter((s) => s.chair === true).map((s) => s.id);
+    speakers.forEach((s) => { delete s.chair; });
+    const others = speakerIds.filter((x) => suppliedIds.indexOf(x) < 0);
+    const chairs = flaggedChairs.length ? flaggedChairs
+      : (brief.suppliedChairs === false ? others : suppliedIds.slice(0, 2).concat(others)).slice(0, Math.min(2, speakerIds.length));
 
     // Day structure
     const arrivalDay = nDays >= 4;

@@ -47,6 +47,11 @@ table.data tr:hover td { background: var(--paper-3); }
 .group-label { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); margin: 1.4rem 0 0.6rem; font-weight: 600; }
 .speaker-row { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; padding: 0.8rem; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); margin-bottom: 0.6rem; }
 @media (min-width: 900px) { .speaker-row { grid-template-columns: 1.2fr 1fr 1fr 1.2fr auto; align-items: end; } }
+.speaker-row .sp-notes { grid-column: 1 / -1; }
+.speaker-row .sp-chair { display: flex; align-items: center; gap: 0.5rem; min-height: 40px; padding: 0 0.2rem; font-size: 0.85rem; color: var(--ink-2); cursor: pointer; user-select: none; white-space: nowrap; margin: 0; }
+.speaker-row .sp-chair input[type="checkbox"] { width: 1.05rem; height: 1.05rem; min-height: 0; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
+.speaker-row .sp-chair:has(input:checked) { color: var(--accent); font-weight: 600; }
+@media (min-width: 900px) { .speaker-row .sp-notes { grid-column: 1 / -2; } .speaker-row .sp-chair { grid-column: -2 / -1; justify-self: start; } }
 .speaker-row input { font: inherit; font-size: 0.9rem; padding: 0.55rem 0.7rem; border-radius: 8px; border: 1px solid var(--line-2); background: var(--paper-2); color: var(--ink); width: 100%; min-height: 40px; }
 .speaker-row label { font-size: 0.72rem; color: var(--ink-3); display: block; margin-bottom: 0.2rem; }
 .mode-cards { display: grid; gap: 1rem; grid-template-columns: repeat(1, minmax(0, 1fr)); }

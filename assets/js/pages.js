@@ -4,6 +4,7 @@
   const $ = (sel, root) => (root || document).querySelector(sel);
   const html = (sel, markup) => { const el = $(sel); if (el) el.innerHTML = markup; return el; };
   const fmtRange = (c) => Engine.formatRange(c.start, c.end);
+  const andList = (items) => items.length <= 1 ? items.join('') : items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
   const NAV_FOR = { home: 'home', conferences: 'conferences', conference: 'conferences', agenda: 'conferences', hotels: 'conferences', register: 'conferences', sponsor: 'conferences', speakers: 'speakers', speaker: 'speakers', sponsors: 'sponsors', about: 'about', contact: 'contact' };
 
   function heroMeta(c) {
@@ -130,7 +131,7 @@
             '<div><span class="k">Dates</span><span class="v">' + esc(fmtRange(c)) + '</span></div>' +
             '<div><span class="k">Venue</span><span class="v">' + esc(c.venue.name) + '</span></div>' +
             '<div><span class="k">Format</span><span class="v">' + esc(c.format) + '</span></div>' +
-            (chairs.length ? '<div><span class="k">Chaired by</span><span class="v">' + esc(chairs.map((s) => s.name).join(' and ')) + '</span></div>' : '') +
+            (chairs.length ? '<div><span class="k">Chaired by</span><span class="v">' + esc(andList(chairs.map((s) => s.name))) + '</span></div>' : '') +
           '</div>' +
           '<div class="btn-row">' + (reg.open ? '<a class="btn btn-glow btn-lg pulse" href="' + url('register', c.id) + '">Register now</a>' : '<a class="btn btn-glow btn-lg" href="' + url('register', c.id) + '">Register interest</a>') + '<a class="btn btn-outline-light btn-lg" href="' + url('agenda', c.id) + '">Explore the programme</a><a class="btn btn-outline-light btn-lg" href="' + url('sponsor', c.id) + '">Become a partner</a></div>' +
           (partners.length ? '<div class="trust"><span class="k">Partners include</span>' + partners.map((s) => '<span class="name">' + esc(s.name) + '</span>').join('') + '</div>' : '') +
@@ -303,7 +304,7 @@
         (c.highlights && c.highlights.length ? '<div class="mt-4"><h3>Highlights</h3><ul class="list-check">' + c.highlights.map((h) => '<li>' + esc(h) + '</li>').join('') + '</ul></div>' : '') +
         (c.tracks && c.tracks.length ? '<div class="mt-6"><div class="section-head"><h2>Tracks</h2><a class="btn btn-outline btn-sm" href="' + url('agenda', c.id) + '">Full programme</a></div><div class="grid grid-2">' + c.tracks.map((t, i) => '<div class="card"><div class="card-body"><span class="track-pill t' + (i % 5) + '">Track ' + (i + 1) + '</span><h3 class="mt-2">' + esc(t.name) + '</h3><p class="muted mb-0">' + esc(t.description || (c._theme ? 'Sessions from the ' + c._theme.name.toLowerCase() + ' programme committee.' : '')) + '</p></div></div>').join('') + '</div></div>' : '') +
         '<div class="mt-6" id="programme"><div class="section-head"><h2>Programme at a glance</h2>' + (sched.length ? '<a class="btn btn-outline btn-sm" href="' + url('agenda', c.id) + '">Day-by-day itinerary</a>' : '') + '</div><div class="grid grid-2">' + glance + '</div></div>' +
-        '<div class="mt-6" id="speakers"><div class="section-head"><h2>' + (past ? 'Faculty' : 'Confirmed speakers') + '</h2><span class="muted">' + speakers.length + ' speaker' + (speakers.length === 1 ? '' : 's') + (chairs.length ? ' · chaired by ' + esc(chairs.map((s) => s.name).join(' and ')) : '') + '</span></div>' +
+        '<div class="mt-6" id="speakers"><div class="section-head"><h2>' + (past ? 'Faculty' : 'Confirmed speakers') + '</h2><span class="muted">' + speakers.length + ' speaker' + (speakers.length === 1 ? '' : 's') + (chairs.length ? ' · chaired by ' + esc(andList(chairs.map((s) => s.name))) : '') + '</span></div>' +
           (speakers.length ? '<div class="grid grid-2">' + speakers.map((s) => UI.speakerCard(s, { note: (c.chairs || []).indexOf(s.id) >= 0 ? 'Programme chair' : '' })).join('') + '</div>' : '<div class="empty">Speakers will be announced as the programme is confirmed.' + (c.cfp && c.cfp.open ? ' <a href="' + url('contact') + '#speak">Propose a session</a>.' : '') + '</div>') + '</div>' +
         '<div class="mt-6" id="venue"><div class="section-head"><h2>Venue & hotels</h2><a class="btn btn-outline btn-sm" href="' + url('hotels', c.id) + '">Hotel partners & booking</a></div>' +
           '<div class="card"><div class="card-body"><h3>' + esc(c.venue.name) + '</h3><p class="muted">' + esc(c.venue.address) + '</p><p class="mb-0">' + esc(c.venue.description) + '</p></div></div>' +

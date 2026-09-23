@@ -209,6 +209,43 @@ test('plan(): a single supplied speaker is kept prominent and the faculty is fil
   assert.strictEqual(names.size, conf.speakers.length, 'no duplicate names');
 });
 
+test('plan(): speakers flagged chair: true are the only chairs', () => {
+  const conf = Engine.plan({ theme: 'privacy-data-protection', start: '2028-03-07', end: '2028-03-08', city: 'Amsterdam', country: 'Netherlands',
+    speakers: [{ name: 'Not A Chair', title: 'General Counsel', org: 'Example NV' }, { name: 'The Chair', title: 'Partner', org: 'Chair LLP', chair: true }, { name: 'Also Not' }] }, { themes: MLS.THEMES });
+  const chair = conf.speakers.find((s) => s.name === 'The Chair');
+  assert.deepStrictEqual(conf.chairs, [chair.id], 'only the flagged speaker chairs');
+  assert.ok(conf.speakers.every((s) => !('chair' in s)), 'chair flag is not duplicated on speaker records');
+  assert.strictEqual(conf.speakers.filter((s) => s.supplied).length, 3, 'unflagged speakers stay supplied');
+  const sched = Engine.schedule(conf, MLS.THEMES.find((t) => t.id === conf.themeId));
+  const opening = sched[0].flat.find((s) => s.type === 'opening');
+  assert.deepStrictEqual(opening.speakers, [chair.id], 'the flagged chair opens the programme');
+  const first = conf.speakers.find((s) => s.name === 'Not A Chair');
+  assert.ok(sched[0].flat.some((s) => s.type === 'keynote' && s.speakers[0] === first.id), 'the first supplied speaker still gives the opening keynote');
+});
+
+test('plan(): suppliedChairs false keeps the supplied speaker prominent without making them chair', () => {
+  const conf = Engine.plan({ theme: 'financial-services-regulatory-compliance', start: '2029-12-01', end: '2029-12-01', city: 'Bangkok', country: 'Thailand', suppliedChairs: false,
+    speakers: [{ name: 'Somchai Prasert', title: 'Head of Compliance', org: 'Siam Example Bank', supplied: true }] }, { themes: MLS.THEMES });
+  const supplied = conf.speakers.find((s) => s.supplied);
+  assert.strictEqual(conf.chairs.length, 2, 'two placeholder chairs proposed');
+  assert.ok(conf.chairs.indexOf(supplied.id) < 0, 'supplied speaker is not a chair');
+  assert.ok(conf.chairs.every((id) => conf.speakers.find((s) => s.id === id).proposed), 'chairs are proposed placeholders');
+  const sched = Engine.schedule(conf, MLS.THEMES.find((t) => t.id === conf.themeId));
+  const appearances = sched[0].flat.filter((s) => (s.speakers || []).indexOf(supplied.id) >= 0);
+  assert.ok(appearances.some((s) => s.type === 'keynote'), 'supplied speaker still gives the opening keynote');
+  assert.ok(appearances.length >= 2, 'supplied speaker still appears at least twice');
+  assert.ok(!appearances.some((s) => s.type === 'opening' || s.type === 'closing'), 'supplied speaker does not open or close');
+});
+
+test('plan(): suppliedChairs false with no faculty fill leaves the chairs to be confirmed', () => {
+  const conf = Engine.plan({ theme: 'esg-climate', start: '2027-05-04', end: '2027-05-05', city: 'Oslo', country: 'Norway', fillFaculty: false, suppliedChairs: false, speakers: ['One Person'] }, { themes: MLS.THEMES });
+  assert.deepStrictEqual(conf.chairs, []);
+  const sched = Engine.schedule(conf, MLS.THEMES.find((t) => t.id === conf.themeId));
+  const opening = sched[0].flat.find((s) => s.type === 'opening');
+  assert.ok(opening && opening.speakers.length === 0, 'opening has no chairs yet');
+  assert.ok(sched[0].flat.some((s) => s.type === 'keynote' && s.speakers[0] === conf.speakers[0].id), 'the supplied speaker still keynotes');
+});
+
 test('plan(): fillFaculty false keeps only supplied speakers', () => {
   const conf = Engine.plan({ theme: 'esg-climate', start: '2027-05-04', end: '2027-05-05', city: 'Oslo', country: 'Norway', fillFaculty: false, speakers: ['One Person'] }, { themes: MLS.THEMES });
   assert.strictEqual(conf.speakers.length, 1);
