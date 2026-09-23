@@ -116,37 +116,70 @@
       const sched = Store.schedule(c);
       const speakers = Store.speakersFor(c);
       const chairs = (c.chairs || []).map((id) => Store.speaker(id)).filter(Boolean);
-      html('#hero', '<div class="hero" ' + UI.heroStyle(c) + '>' +
+      const days = Engine.daysUntil(c, MLS.NOW);
+      const partners = (c.sponsors || []).filter((s) => ['Platinum', 'Gold'].indexOf(s.tier) >= 0).slice(0, 4);
+      const includes = (reg.includes || []).slice(0, 3);
+      html('#hero', '<section class="hero-xl" ' + UI.heroStyle(c) + '>' +
+        '<div class="aurora"></div><div class="grain"></div><div class="orb a"></div><div class="orb b"></div>' +
         '<svg class="rings" viewBox="0 0 400 400" aria-hidden="true"><circle cx="140" cy="200" r="120"/><circle cx="200" cy="200" r="120"/><circle cx="260" cy="200" r="120"/></svg>' +
         '<div class="container hero-inner"><div>' +
-          '<p class="eyebrow on-dark">' + (c._status === 'live' ? 'Happening now' : 'Next conference · ' + (reg.open ? 'Registration open' : 'Announced')) + '</p>' +
-          '<h1>' + esc(c.title) + '<br><span style="opacity:.8;font-weight:400">' + esc(c.edition) + '</span></h1>' +
+          '<div class="pill-row">' + (c._status === 'live' ? '<span class="pill-glass"><span class="dot"></span>Happening now</span>' : (reg.open ? '<span class="pill-glass"><span class="dot"></span>Registration open</span>' : '<span class="pill-glass">Announced</span>')) + (days > 0 ? '<span class="pill-glass">' + days + ' days to go</span>' : '') + '<span class="pill-glass">' + esc(c.city) + (c.country ? ', ' + esc(c.country) : '') + '</span></div>' +
+          '<h1>' + esc(c.title) + ' <em>' + esc(c.edition) + '</em></h1>' +
           '<p class="lede">' + esc(c.tagline) + '</p>' +
           '<div class="meta">' +
             '<div><span class="k">Dates</span><span class="v">' + esc(fmtRange(c)) + '</span></div>' +
-            '<div><span class="k">Venue</span><span class="v">' + esc(c.venue.name) + ', ' + esc(c.city) + '</span></div>' +
+            '<div><span class="k">Venue</span><span class="v">' + esc(c.venue.name) + '</span></div>' +
             '<div><span class="k">Format</span><span class="v">' + esc(c.format) + '</span></div>' +
+            (chairs.length ? '<div><span class="k">Chaired by</span><span class="v">' + esc(chairs.map((s) => s.name).join(' and ')) + '</span></div>' : '') +
           '</div>' +
-          '<div class="btn-row">' + (reg.open ? '<a class="btn btn-light btn-lg" href="' + url('register', c.id) + '">Register now</a>' : '<a class="btn btn-light btn-lg" href="' + url('register', c.id) + '">Register interest</a>') + '<a class="btn btn-outline-light btn-lg" href="' + url('agenda', c.id) + '">View the programme</a><a class="btn btn-outline-light btn-lg" href="' + url('sponsor', c.id) + '">Partner with us</a></div>' +
+          '<div class="btn-row">' + (reg.open ? '<a class="btn btn-glow btn-lg pulse" href="' + url('register', c.id) + '">Register now</a>' : '<a class="btn btn-glow btn-lg" href="' + url('register', c.id) + '">Register interest</a>') + '<a class="btn btn-outline-light btn-lg" href="' + url('agenda', c.id) + '">Explore the programme</a><a class="btn btn-outline-light btn-lg" href="' + url('sponsor', c.id) + '">Become a partner</a></div>' +
+          (partners.length ? '<div class="trust"><span class="k">Partners include</span>' + partners.map((s) => '<span class="name">' + esc(s.name) + '</span>').join('') + '</div>' : '') +
         '</div>' +
-        '<div class="hero-panel"><h3>' + (c._status === 'live' ? 'The summit is under way' : 'Opens in') + '</h3><div class="countdown" id="countdown"></div>' +
-          (reg.tiers.length ? reg.tiers.map((t) => '<div class="price ' + (t.state === 'closed' ? 'closed' : '') + '"><span>' + esc(t.name) + (t.until && t.state !== 'closed' ? ' <span style="opacity:.7">· until ' + esc(Engine.formatDate(t.until, { short: true })) + '</span>' : '') + '</span><strong>' + esc(UI.money(t.price, reg.currency)) + '</strong></div>').join('') : '') +
-          '<p class="small mt-2 mb-0" style="opacity:.8">' + (c.hotels && c.hotels[0] && c.hotels[0].cutoff ? 'Headquarters hotel block closes ' + esc(Engine.formatDate(c.hotels[0].cutoff)) + '. ' : '') + (c.registration && c.registration.groupDiscount ? esc(c.registration.groupDiscount) : '') + '</p>' +
-        '</div></div>' +
-        '<div class="hero-strip"><div class="container row">' +
-          '<span><strong>' + speakers.length + '</strong> confirmed speakers</span><span><strong>' + (c.tracks || []).length + '</strong> tracks</span><span><strong>' + Engine.countSessions(sched) + '</strong> sessions over ' + sched.length + ' days</span>' +
-          (chairs.length ? '<span>Chaired by <strong>' + esc(chairs.map((s) => s.name).join(' and ')) + '</strong></span>' : '') +
-          (c.hashtag ? '<span style="margin-left:auto">' + esc(c.hashtag) + '</span>' : '') +
-        '</div></div></div>');
+        '<div class="glass"><h3>' + (c._status === 'live' ? 'Under way' : 'Doors open in') + '<small>' + esc(Engine.formatDate(c.start, { weekday: true, short: true })) + '</small></h3><div class="countdown" id="countdown"></div>' +
+          reg.tiers.map((t) => '<div class="price ' + esc(t.state) + '"><span>' + esc(t.name) + (t.state === 'current' ? '<span class="tag">Current</span>' : '') + (t.until && t.state !== 'closed' ? ' <span style="opacity:.7">· until ' + esc(Engine.formatDate(t.until, { short: true, noYear: true })) + '</span>' : '') + '</span><strong>' + esc(UI.money(t.price, reg.currency)) + '</strong></div>').join('') +
+          (includes.length ? '<ul class="includes">' + includes.map((i) => '<li>' + esc(i) + '</li>').join('') + '</ul>' : '') +
+          '<a class="btn btn-light w-full mt-3" href="' + url('register', c.id) + '">' + (reg.open ? 'Secure your place' : 'Register your interest') + '</a>' +
+          (c.hotels && c.hotels[0] && c.hotels[0].cutoff ? '<p class="small mt-2 mb-0" style="opacity:.75;text-align:center">Headquarters hotel block closes ' + esc(Engine.formatDate(c.hotels[0].cutoff, { short: true })) + '</p>' : '') +
+        '</div></div></section>' +
+        tickerMarkup(c, sched, speakers, reg));
       UI.countdown($('#countdown'), c.start, '00:00:00');
+
+      // Agenda teaser timeline
+      const tl = $('#timeline');
+      if (tl && sched.length) {
+        tl.style.setProperty('--days', sched.length);
+        tl.innerHTML = sched.map((d) => {
+          const top = d.flat.find((s) => ['keynote', 'panel', 'masterclass', 'regulator-address', 'debate'].indexOf(s.type) >= 0) || d.flat.find((s) => Engine.EVENING_TYPES.indexOf(s.type) >= 0) || d.flat[0];
+          return '<div class="tl-day"><span class="dot" aria-hidden="true"></span><div class="d">Day ' + d.number + ' · ' + esc(d.weekday.slice(0, 3)) + ' ' + esc(Engine.formatDate(d.date, { short: true, noYear: true })) + '</div><h4>' + esc(d.label) + '</h4><p>' + esc(top ? top.title : '') + '</p>' + (d.contentCount ? '<span class="n">' + d.contentCount + ' sessions →</span>' : '<span class="n">Social programme →</span>') + '</div>';
+        }).join('');
+        $('#inside-title').textContent = sched.length + ' days, ' + (c.tracks || []).length + ' tracks, one room that matters';
+        $('#inside-sub').textContent = c.title + ' · ' + c.edition + ' · ' + Engine.countSessions(sched) + ' sessions with ' + speakers.length + ' speakers.';
+        $('#inside-link').setAttribute('href', url('agenda', c.id));
+      } else if (tl) { $('#inside').classList.add('hide'); }
+
+      // Destination panel
+      const hotels = (c.hotels || []).slice(0, 3);
+      const faq = (c.faq || []).slice(0, 2);
+      html('#destination', '<div class="destination" ' + UI.heroStyle(c) + '>' +
+        '<svg class="waves" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true"><path d="M0 80 C 240 140, 480 20, 720 80 S 1200 140, 1440 80 V160 H0 Z" fill="rgba(255,255,255,0.12)"/><path d="M0 110 C 240 170, 480 50, 720 110 S 1200 170, 1440 110 V160 H0 Z" fill="rgba(255,255,255,0.10)"/></svg>' +
+        '<div><p class="eyebrow on-dark">The destination</p><h2>' + esc(c.city) + (c.country ? ', ' + esc(c.country) : '') + '</h2><p class="lede" style="color:rgba(255,255,255,.88)">' + esc(c.venue.description) + '</p>' + faq.map((f) => '<p class="small"><strong>' + esc(f.q) + '</strong> ' + esc(f.a) + '</p>').join('') + '<div class="btn-row"><a class="btn btn-light" href="' + url('hotels', c.id) + '">Hotel partners &amp; booking</a><a class="btn btn-outline-light" href="' + url('conference', c.id) + '#venue">About the venue</a></div></div>' +
+        '<div class="hotel-mini">' + hotels.map((h) => '<div><span><strong>' + esc(h.name) + '</strong><span class="s">' + esc(h.category) + ' · ' + esc(h.distance) + '</span></span><span class="r">' + esc(String(h.rate).replace(/ per night$/, '')) + '</span></div>').join('') + (hotels.length ? '<p class="small mb-0" style="opacity:.75">Negotiated delegate rates per night, available to registered delegates until the cut-off dates shown on the hotels page.</p>' : '') + '</div></div>');
+
+      // Closing call to action
+      html('#cta', '<section class="cta-band"><div class="container"><p class="eyebrow on-dark">' + esc(c.title) + ' · ' + esc(c.edition) + '</p><h2>' + (reg.open ? 'Secure your place at the <em>summit</em>' : 'Be first to hear when registration <em>opens</em>') + '</h2>' +
+        (reg.current ? '<div class="price-lockup"><strong>' + esc(UI.money(reg.current.price, reg.currency)) + '</strong><span>per delegate · ' + esc(reg.current.name) + (reg.current.until ? ' pricing until ' + esc(Engine.formatDate(reg.current.until)) : '') + '</span></div>' : '') +
+        '<p>' + esc(c.summary) + '</p>' +
+        '<div class="btn-row" style="justify-content:center"><a class="btn btn-glow btn-lg" href="' + url('register', c.id) + '">' + (reg.open ? 'Register now' : 'Register interest') + '</a><a class="btn btn-outline-light btn-lg" href="' + url('sponsor', c.id) + '">Partner with the summit</a></div></div></section>');
+    } else {
+      $('#inside').classList.add('hide');
     }
 
     html('#upcoming-grid', upcoming.length ? upcoming.map((c) => UI.confCard(c)).join('') : '<div class="empty">Further programmes will be announced shortly.</div>');
 
     const org = MLS.ORG;
-    html('#stats', [[org.stats.conferences, 'Conferences since ' + org.founded], [org.stats.delegates, 'Delegates convened'], [org.stats.countries, 'Countries represented'], [org.stats.rating, 'Average delegate rating']].map(([n, l]) => '<div class="stat"><div class="num">' + esc(n) + '</div><div class="lbl">' + esc(l) + '</div></div>').join(''));
+    html('#stats', [[org.stats.conferences, 'Conferences since ' + org.founded], [org.stats.delegates, 'Delegates convened'], [org.stats.countries, 'Countries represented'], [org.stats.rating, 'Average delegate rating']].map(([n, l]) => '<div class="stat"><div class="num" data-count="' + esc(n) + '">' + esc(n) + '</div><div class="lbl">' + esc(l) + '</div></div>').join(''));
+    countUp(document.querySelectorAll('#stats .num'));
 
-    // Topic chips for past conferences
     const themes = Array.from(new Set(past.map((c) => c.themeId))).map((id) => MLS.THEMES.find((t) => t.id === id)).filter(Boolean);
     const chipRow = $('#topic-chips');
     let activeTheme = null;
@@ -168,7 +201,7 @@
     renderPast();
 
     const featuredSpeakers = Store.speakers().filter((s) => s.featured).slice(0, 8);
-    html('#faculty-grid', featuredSpeakers.map((s) => UI.speakerCard(s, { note: s._appearances + ' OOO programme' + (s._appearances === 1 ? '' : 's') })).join(''));
+    html('#faculty-grid', featuredSpeakers.map((s) => '<a class="spot" href="' + url('speaker', s.id) + '">' + UI.avatar(s, 'lg') + '<span class="name">' + esc(s.name) + '</span><span class="role">' + esc(s.title) + '</span><span class="org">' + esc(s.org) + '</span><span class="tagrow">' + (s.expertise || []).slice(0, 2).map((e) => '<span class="tag">' + esc(e) + '</span>').join('') + '</span></a>').join(''));
 
     const names = Array.from(new Set(Store.conferences().flatMap((c) => (c.sponsors || []).filter((s) => ['Platinum', 'Gold'].indexOf(s.tier) >= 0).map((s) => s.name))));
     const track = names.map((n) => '<span>' + esc(n) + '</span>').join('');
@@ -177,6 +210,42 @@
     const quotes = past.flatMap((c) => (c.recap && c.recap.quotes ? c.recap.quotes.map((q) => Object.assign({ conf: c }, q)) : [])).slice(0, 3);
     html('#quotes', quotes.map((q) => '<blockquote class="quote"><p>“' + esc(q.text) + '”</p><footer><strong>' + esc(q.name) + '</strong>' + esc(q.role) + ' · ' + esc(q.conf.title) + ', ' + esc(q.conf.edition) + '</footer></blockquote>').join(''));
   };
+
+  function tickerMarkup(c, sched, speakers, reg) {
+    const items = [];
+    sched.forEach((d) => d.flat.forEach((s) => { if (['keynote', 'panel', 'debate', 'masterclass', 'fireside', 'roundtable'].indexOf(s.type) >= 0 && items.length < 10) items.push('<span class="item"><span class="lbl">' + esc(Engine.TYPE_LABELS[s.type] || s.type) + '</span>' + esc(s.title) + '</span>'); }));
+    speakers.slice(0, 6).forEach((s) => items.push('<span class="item"><span class="lbl">Speaking</span>' + esc(s.name) + ', ' + esc(s.org) + '</span>'));
+    if (reg.current && reg.current.until) items.push('<span class="item"><span class="lbl">Pricing</span>' + esc(reg.current.name) + ' rate ends ' + esc(Engine.formatDate(reg.current.until)) + '</span>');
+    if (c.hotels && c.hotels[0] && c.hotels[0].cutoff) items.push('<span class="item"><span class="lbl">Hotels</span>' + esc(c.hotels[0].name) + ' block closes ' + esc(Engine.formatDate(c.hotels[0].cutoff)) + '</span>');
+    if (!items.length) return '';
+    const track = items.join('');
+    return '<div class="ticker" aria-hidden="true"><div class="track">' + track + track + '</div></div>';
+  }
+
+  function countUp(nodes) {
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const run = (el) => {
+      const raw = el.dataset.count || el.textContent;
+      const m = /^([\d,]+(?:\.\d+)?)(.*)$/.exec(raw.trim());
+      if (!m || reduce) { el.textContent = raw; return; }
+      const target = parseFloat(m[1].replace(/,/g, ''));
+      const suffix = m[2];
+      const decimals = (m[1].split('.')[1] || '').length;
+      const start = performance.now();
+      const dur = 1100;
+      const tick = (now) => {
+        const p = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const val = target * eased;
+        el.textContent = (decimals ? val.toFixed(decimals) : Math.round(val).toLocaleString('en-US')) + suffix;
+        if (p < 1) requestAnimationFrame(tick); else el.textContent = raw;
+      };
+      requestAnimationFrame(tick);
+    };
+    if (!('IntersectionObserver' in window)) { nodes.forEach((el) => run(el)); return; }
+    const io = new IntersectionObserver((entries) => { entries.forEach((en) => { if (en.isIntersecting) { run(en.target); io.unobserve(en.target); } }); }, { threshold: 0.4 });
+    nodes.forEach((el) => io.observe(el));
+  }
 
   /* ------------------------------------------------------------------ */
   Pages.conferences = function () {
@@ -370,7 +439,7 @@
             UI.field({ name: 'objectives', label: 'What would success look like?', type: 'textarea', placeholder: 'Lead generation, thought leadership, hosting a dinner, launching a product…' }) +
             '<label class="check"><input type="checkbox" name="consent" required><span>I agree to be contacted about partnership opportunities. See our privacy notice.</span></label>' +
             '<div class="btn-row"><button class="btn btn-primary btn-lg" type="submit">Send enquiry</button><span class="small muted">or email <a href="mailto:' + esc(MLS.ORG.emails.sponsorship) + '">' + esc(MLS.ORG.emails.sponsorship) + '</a></span></div>' +
-          '</form></div><aside><div class="aside-card"><h3>Your partnerships contact</h3><p class="small"><strong>Margaux Olivier</strong><br>Head of Partnerships<br><a href="mailto:' + esc(MLS.ORG.emails.sponsorship) + '">' + esc(MLS.ORG.emails.sponsorship) + '</a><br>' + esc(MLS.ORG.offices[0].phone) + '</p></div>' + (c.hashtag ? '<div class="aside-card"><h3>Reach beyond the room</h3><p class="small muted mb-0">All partners are featured in pre-event communications to the OOO community and in the post-event report. Official hashtag: ' + esc(c.hashtag) + '.</p></div>' : '') + '</aside></div></div>' +
+          '</form></div><aside><div class="aside-card"><h3>Your partnerships contact</h3><p class="small"><strong>Margaux Olivier</strong><br>Head of Partnerships<br><a href="mailto:' + esc(MLS.ORG.emails.sponsorship) + '">' + esc(MLS.ORG.emails.sponsorship) + '</a></p></div>' + (c.hashtag ? '<div class="aside-card"><h3>Reach beyond the room</h3><p class="small muted mb-0">All partners are featured in pre-event communications to the OOO community and in the post-event report. Official hashtag: ' + esc(c.hashtag) + '.</p></div>' : '') + '</aside></div></div>' +
       '</div></section>');
     const form = $('#sponsor-form');
     UI.bindForm(form, 'sponsorship', { extra: { conferenceId: c.id, conference: c.title + ' — ' + c.edition }, successText: 'Thank you. The prospectus for ' + c.title + ' is on its way, and Margaux Olivier will propose a call within one working day.' });
@@ -453,7 +522,7 @@
     html('#team', org.team.map((m) => '<div class="speaker-card" style="cursor:default">' + UI.avatar({ id: m.name, name: m.name }) + '<span><span class="name">' + esc(m.name) + '</span><span class="role" style="display:block">' + esc(m.role) + '</span><span class="small muted" style="display:block;margin-top:.35rem">' + esc(m.bio) + '</span></span></div>').join(''));
     const board = (org.advisoryBoard || []).map((id) => Store.speaker(id)).filter(Boolean);
     html('#advisory', board.map((s) => UI.speakerCard(s)).join(''));
-    html('#offices', org.offices.map((o) => '<div class="card"><div class="card-body"><p class="eyebrow mb-1">' + esc(o.label) + '</p><h3>' + esc(o.city) + '</h3><p class="muted mb-1">' + esc(o.address) + '</p><p class="mb-0"><a href="tel:' + esc(o.phone.replace(/\s/g, '')) + '">' + esc(o.phone) + '</a></p></div></div>').join(''));
+    html('#offices', org.offices.map((o) => '<div class="card"><div class="card-body"><p class="eyebrow mb-1">' + esc(o.label) + '</p><h3>' + esc(o.city) + '</h3><p class="muted mb-0">' + esc(o.address) + '</p></div></div>').join(''));
   };
 
   /* ------------------------------------------------------------------ */
@@ -463,7 +532,7 @@
     const upcoming = Store.upcoming();
     const speakerId = new URLSearchParams(location.search).get('speaker');
     const sp = speakerId ? Store.speaker(speakerId) : null;
-    html('#offices', org.offices.map((o) => '<div class="card"><div class="card-body"><p class="eyebrow mb-1">' + esc(o.label) + '</p><h3>' + esc(o.city) + '</h3><p class="muted mb-1">' + esc(o.address) + '</p><p class="mb-0"><a href="tel:' + esc(o.phone.replace(/\s/g, '')) + '">' + esc(o.phone) + '</a></p></div></div>').join(''));
+    html('#offices', org.offices.map((o) => '<div class="card"><div class="card-body"><p class="eyebrow mb-1">' + esc(o.label) + '</p><h3>' + esc(o.city) + '</h3><p class="muted mb-0">' + esc(o.address) + '</p></div></div>').join(''));
     html('#emails', Object.entries({ 'General enquiries': org.emails.general, 'Delegates and registration': org.emails.registration, 'Sponsorship and partnerships': org.emails.sponsorship, 'Speakers and programme': org.emails.speakers, 'Press': org.emails.press }).map(([k, v]) => '<dt>' + esc(k) + '</dt><dd><a href="mailto:' + esc(v) + '">' + esc(v) + '</a></dd>').join(''));
     const general = $('#general-form');
     if (general) {

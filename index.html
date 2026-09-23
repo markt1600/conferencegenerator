@@ -9,7 +9,7 @@
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/css/site.css">
 <script>(function(){try{var t=localStorage.getItem('ooo.theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 </head>
@@ -18,33 +18,59 @@
 <header data-site-header></header>
 <main id="main">
 <div id="hero" aria-live="polite"></div>
-<section class="section" id="upcoming">
+
+<section class="section" id="why">
   <div class="container">
-    <div class="section-head"><div><p class="eyebrow">Also coming up</p><h2>Upcoming conferences</h2><p class="muted">Registration, calls for speakers and save-the-dates across the OOO calendar.</p></div><a class="btn btn-outline" href="/conferences#upcoming">All upcoming events</a></div>
+    <div class="section-head">
+      <div><p class="eyebrow lined">Why delegates return</p><h2>Agendas written by lawyers.<br>Rooms curated for practitioners.</h2></div>
+      <a class="btn btn-outline" href="/about">The OOO story</a>
+    </div>
+    <div class="features">
+      <article class="feature"><span class="num" aria-hidden="true">01</span><span class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14.5"/><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M8 7h8M8 11h6"/></svg></span><h3>Editorial independence</h3><p>Every programme is researched and written by qualified lawyers and reviewed by an independent advisory board. Speaking places are earned on merit, and partner sessions are labelled.</p></article>
+      <article class="feature"><span class="num" aria-hidden="true">02</span><span class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.5a5 5 0 0 1 6 4.5"/></svg></span><h3>A room worth being in</h3><p>Regulators, general counsel, compliance leaders and private practice, balanced by design. Sixty per cent of delegates return the following year, and closed-door roundtables run under the Chatham House rule.</p></article>
+      <article class="feature"><span class="num" aria-hidden="true">03</span><span class="icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4.5-3 8-7 9-4-1-7-4.5-7-9V7l7-4z"/><path d="M9 12l2 2 4-4"/></svg></span><h3>Practical outcomes</h3><p>Sessions answer the questions delegates face on Monday morning. Workshops produce a toolkit, slides are published, and the post-conference report lands within two weeks.</p></article>
+    </div>
+    <div class="stats xl mt-4" id="stats"></div>
+  </div>
+</section>
+
+<section class="section" id="upcoming" style="padding-top:0">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow lined">Also coming up</p><h2>Upcoming conferences</h2><p class="muted">Registration, calls for speakers and save-the-dates across the OOO calendar.</p></div><a class="btn btn-outline" href="/conferences#upcoming">All upcoming events</a></div>
     <div class="grid grid-3" id="upcoming-grid"></div>
   </div>
 </section>
-<section class="section tight">
+
+<section class="section" id="inside">
   <div class="container">
-    <div class="two-col" style="align-items:center">
-      <div><p class="eyebrow">Why OOO</p><h2>Agendas written by lawyers. Rooms curated for practitioners.</h2><p class="lede">Orient Occidental Organisers convenes regulators, in-house counsel and private practice from the Orient and the Occident. We do not sell speaking slots, we cap partner presentations, and we publish satisfaction scores for every event.</p><div class="btn-row"><a class="btn btn-ink" href="/about">About OOO</a><a class="btn btn-ghost" href="/speakers">Meet the faculty →</a></div></div>
-      <div class="stats compact" id="stats"></div>
-    </div>
+    <div class="section-head"><div><p class="eyebrow lined">Inside the summit</p><h2 id="inside-title">Five days, five tracks, one room that matters</h2><p class="muted" id="inside-sub"></p></div><a class="btn btn-outline" id="inside-link" href="/conferences">Day-by-day programme</a></div>
+    <div class="timeline" id="timeline"></div>
+    <div class="mt-6" id="destination"></div>
   </div>
 </section>
-<section class="section" id="past">
+
+<section class="section" id="faculty">
   <div class="container">
-    <div class="section-head"><div><p class="eyebrow">Programme archive</p><h2>Past conferences</h2><p class="muted">Speakers, itineraries and partner information for every programme we have run.</p></div><a class="btn btn-outline" href="/conferences#past">Browse the full archive</a></div>
+    <div class="section-head"><div><p class="eyebrow lined">Faculty</p><h2>Speakers who shape the profession</h2><p class="muted">Regulators, general counsel and practitioners who have led OOO programmes.</p></div><a class="btn btn-outline" href="/speakers">All speakers</a></div>
+    <div class="spotlight" id="faculty-grid"></div>
+  </div>
+</section>
+
+<section class="section" id="past" style="padding-top:0">
+  <div class="container">
+    <div class="section-head"><div><p class="eyebrow lined">Programme archive</p><h2>Past conferences</h2><p class="muted">Speakers, itineraries and partner information for every programme we have run.</p></div><a class="btn btn-outline" href="/conferences#past">Browse the full archive</a></div>
     <div class="chip-row mb-3" id="topic-chips"></div>
     <div class="grid grid-3" id="past-grid"></div>
   </div>
 </section>
-<section class="section" id="faculty">
+
+<section class="section" style="padding-top:0">
   <div class="container">
-    <div class="section-head"><div><p class="eyebrow">Faculty</p><h2>Speakers who shape the profession</h2></div><a class="btn btn-outline" href="/speakers">All speakers</a></div>
-    <div class="grid grid-4" id="faculty-grid"></div>
+    <p class="eyebrow lined">What delegates say</p>
+    <div class="grid grid-3" id="quotes"></div>
   </div>
 </section>
+
 <section class="band">
   <div class="container">
     <div class="two-col" style="align-items:center">
@@ -53,12 +79,8 @@
     </div>
   </div>
 </section>
-<section class="section">
-  <div class="container">
-    <p class="eyebrow">What delegates say</p>
-    <div class="grid grid-3" id="quotes"></div>
-  </div>
-</section>
+
+<div id="cta"></div>
 </main>
 <footer data-site-footer></footer>
 <script src="/assets/js/data.js"></script>

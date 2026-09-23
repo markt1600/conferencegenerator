@@ -14,9 +14,9 @@
     founded: 2014,
     hq: 'Singapore',
     offices: [
-      { city: 'Singapore', label: 'Headquarters', address: '3 Church Street, #22-01, Samsung Hub, Singapore 049483', phone: '+65 6011 2280' },
-      { city: 'London', label: 'Europe', address: '14 Carter Lane, London EC4V 5EF, United Kingdom', phone: '+44 20 7946 0810' },
-      { city: 'New York', label: 'Americas', address: '110 William Street, 21st Floor, New York, NY 10038, United States', phone: '+1 212 555 0148' },
+      { city: 'Singapore', label: 'Headquarters', address: '3 Church Street, #22-01, Samsung Hub, Singapore 049483' },
+      { city: 'London', label: 'Europe', address: '14 Carter Lane, London EC4V 5EF, United Kingdom' },
+      { city: 'New York', label: 'Americas', address: '110 William Street, 21st Floor, New York, NY 10038, United States' },
     ],
     emails: {
       general: 'hello@ooo.sg',
