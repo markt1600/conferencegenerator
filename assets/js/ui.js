@@ -152,11 +152,12 @@
 
   function speakerCard(sp, opts) {
     opts = opts || {};
+    const note = opts.note || (sp.proposed ? 'Invited · confirmation pending' : '');
     return '<a class="speaker-card" href="' + url('speaker', sp.id) + '">' + avatar(sp) +
       '<span><span class="name">' + esc(sp.name) + '</span>' +
       '<span class="role" style="display:block">' + esc(sp.title) + '</span>' +
       '<span class="org" style="display:block">' + esc(sp.org) + '</span>' +
-      (opts.note ? '<span class="small muted" style="display:block;margin-top:.35rem">' + esc(opts.note) + '</span>' : '') +
+      (note ? '<span class="small muted" style="display:block;margin-top:.35rem">' + esc(note) + '</span>' : '') +
       '</span></a>';
   }
 

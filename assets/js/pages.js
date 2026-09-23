@@ -383,11 +383,11 @@
     const appMarkup = (a) => '<div class="card"><div class="card-body"><div class="flex between wrap gap-1"><div><p class="eyebrow mb-1">' + esc(fmtRange(a.conf)) + ' · ' + esc(a.conf.city) + '</p><h3><a href="' + url('conference', a.conf.id) + '">' + esc(a.conf.title) + ' — ' + esc(a.conf.edition) + '</a></h3></div>' + (a.isChair ? '<span class="badge badge-accent">Programme chair</span>' : '') + '</div>' +
       (a.sessions.length ? '<ul class="list-check mt-2 mb-0">' + a.sessions.map((x) => '<li>' + UI.typeBadge(x.type) + ' <strong>' + esc(x.title) + '</strong><br><span class="small muted">' + esc(x.dayLabel) + ', ' + esc(Engine.formatDate(x.date, { short: true })) + ' · ' + esc(x.start) + '–' + esc(x.end) + '</span></li>').join('') + '</ul>' : '') + '<a class="btn btn-ghost btn-sm mt-2" href="' + url('agenda', a.conf.id) + '">Full programme →</a></div></div>';
     html('#app', '<section class="page-hero"><div class="container"><div class="crumbs"><a href="' + url('home') + '">Home</a> / <a href="' + url('speakers') + '">Speakers</a> / ' + esc(s.name) + '</div>' +
-      '<div class="flex wrap gap-2 center">' + UI.avatar(s, 'xl') + '<div><h1>' + esc(s.name) + '</h1><p class="lede mb-1">' + esc(s.title) + (s.org ? ', ' + esc(s.org) : '') + '</p>' + (s.location ? '<p class="small" style="opacity:.75">' + esc(s.location) + '</p>' : '') +
+      '<div class="flex wrap gap-2 center">' + UI.avatar(s, 'xl') + '<div>' + (s.proposed ? '<span class="badge badge-outline-light mb-1">Invited speaker · confirmation pending</span>' : '') + '<h1>' + esc(s.name) + '</h1><p class="lede mb-1">' + esc(s.title) + (s.org ? ', ' + esc(s.org) : '') + '</p>' + (s.location ? '<p class="small" style="opacity:.75">' + esc(s.location) + '</p>' : '') +
       '<div class="flex wrap gap-1 mt-2">' + (s.expertise || []).map((e) => '<span class="badge badge-outline-light">' + esc(e) + '</span>').join('') + '</div>' +
       '<div class="btn-row mt-3">' + (s.linkedin ? '<a class="btn btn-light" href="' + esc(s.linkedin) + '" target="_blank" rel="noopener">LinkedIn profile</a>' : '') + '<a class="btn btn-outline-light" href="' + url('contact') + '?speaker=' + encodeURIComponent(s.id) + '#general">Request an introduction</a></div></div></div></div></section>' +
       '<section class="section"><div class="container two-col"><div>' +
-        '<h2>Biography</h2><p class="lede" style="font-size:1.08rem">' + esc(Engine.bioFor(s)) + '</p>' + (s._source !== 'seed' && !s.bio ? '<p class="small muted">Draft biography generated from the details supplied to the organiser console. Pending speaker approval.</p>' : '') +
+        '<h2>Biography</h2><p class="lede" style="font-size:1.08rem">' + esc(Engine.bioFor(s)) + '</p>' + (s._source !== 'seed' && (!s.bio || s.bioDraft) ? '<p class="small muted">' + (s.researched ? 'Draft biography compiled from the details supplied and public sources. ' : (s.proposed ? 'Placeholder profile for an invited speaker; details will be updated on confirmation. ' : 'Draft biography generated from the details supplied to the organiser console. ')) + 'Pending speaker approval.</p>' : '') +
         (upcoming.length ? '<h2 class="mt-6">Speaking at</h2><div class="grid grid-1" style="display:grid;gap:1rem">' + upcoming.map(appMarkup).join('') + '</div>' : '') +
         (past.length ? '<h2 class="mt-6">Past OOO appearances</h2><div style="display:grid;gap:1rem">' + past.map(appMarkup).join('') + '</div>' : '') +
         (!apps.length ? '<div class="empty mt-4">No programme appearances recorded yet.</div>' : '') +
@@ -567,8 +567,22 @@
 
   Pages.notfound = function () { UI.setMeta('Page not found', ''); };
 
+  function routeFromPath() {
+    const path = location.pathname.replace(/\/+$/, '');
+    let m = /^\/conferences\/[^/]+\/(agenda|register|hotels|sponsor)$/.exec(path);
+    if (m) return m[1];
+    if (/^\/conferences\/[^/]+$/.test(path)) return 'conference';
+    if (/^\/speakers\/[^/]+$/.test(path)) return 'speaker';
+    return null;
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
-    const page = document.body.dataset.page;
+    let page = document.body.dataset.page;
+    if (page === 'notfound') {
+      // Served as the platform's 404 page for a deep link the rewrites did not catch: render the intended page anyway.
+      const target = routeFromPath();
+      if (target) { page = target; document.body.dataset.page = target; const main = $('#main'); if (main && !$('#app')) main.innerHTML = '<div id="app"></div>'; }
+    }
     UI.renderChrome(NAV_FOR[page] || '');
     try {
       await Store.ready;

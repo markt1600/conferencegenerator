@@ -94,6 +94,36 @@ function fakeClient(reply, stopReason) {
     assert.strictEqual(ai.describeError(new Error('boom')).status, 500);
   });
 
+  await test('faculty stage validates placeholder profiles', async () => {
+    const reply = { speakers: [{ name: 'Test Person', title: 'Head of Compliance', org: 'Northbridge Bank', location: 'Bangkok, Thailand', expertise: ['AML'], bio: 'Two sentences. Here.' }] };
+    const r = await ai.runStage('faculty', { brief: { region: 'Asia-Pacific' }, count: 1, existing: [] }, null, fakeClient(reply));
+    assert.strictEqual(r.data.speakers[0].org, 'Northbridge Bank');
+  });
+
+  await test('research stage uses web tools, resumes pause_turn and keeps only sourced facts', async () => {
+    const calls = [];
+    let n = 0;
+    const c = { beta: { messages: { stream(params) { calls.push(params); n++;
+      const paused = n === 1;
+      return { finalMessage: async () => ({ stop_reason: paused ? 'pause_turn' : 'end_turn', model: params.model, usage: { input_tokens: 10, output_tokens: 5, server_tool_use: { web_search_requests: 2 } },
+        content: paused ? [{ type: 'server_tool_use', id: 'x', name: 'web_search', input: { query: 'q' } }] : [
+          { type: 'web_search_tool_result', tool_use_id: 'x', content: [{ type: 'web_search_result', url: 'https://example.com/bio', title: 'Bio' }] },
+          { type: 'text', text: 'Here is the result:\n```json\n{"speakers":[{"id":"ada","found":true,"headline":"Head of Compliance, Example Bank","facts":[{"text":"Leads compliance at Example Bank","source":"https://example.com/bio"},{"text":"unsourced claim","source":"none"}],"sources":["https://example.com/bio"],"note":null}]}\n```' }] }) }; } } } };
+    const r = await ai.runStage('research', { speakers: [{ id: 'ada', name: 'Ada', linkedin: 'https://www.linkedin.com/in/ada' }] }, null, c);
+    assert.strictEqual(calls.length, 2, 'resumed after pause_turn');
+    assert.strictEqual(calls[1].messages.length, 2, 'assistant turn appended for the resume');
+    assert.deepStrictEqual(calls[0].tools.map((t) => t.type), ['web_search_20260209', 'web_fetch_20260209']);
+    assert.strictEqual(r.data.speakers[0].found, true);
+    assert.strictEqual(r.data.speakers[0].facts.length, 1, 'unsourced fact dropped');
+    assert.strictEqual(r.usage.web_searches, 4);
+  });
+
+  await test('research stage degrades gracefully when the reply is not JSON', async () => {
+    const r = await ai.runStage('research', { speakers: [{ id: 'x', name: 'X', linkedin: 'https://www.linkedin.com/in/x' }] }, null, fakeClient('I could not find anything useful.'));
+    assert.strictEqual(r.data.speakers[0].found, false);
+    assert.ok(/could not be read/.test(r.data.speakers[0].note));
+  });
+
   console.log('\n' + passed + ' passed, ' + failed + ' failed\n');
   process.exit(failed ? 1 : 0);
 })();

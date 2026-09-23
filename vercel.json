@@ -3,27 +3,61 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/conferences/:slug/agenda", "destination": "/agenda.html" },
-    { "source": "/conferences/:slug/register", "destination": "/register.html" },
-    { "source": "/conferences/:slug/hotels", "destination": "/hotels.html" },
-    { "source": "/conferences/:slug/sponsor", "destination": "/sponsor.html" },
-    { "source": "/conferences/:slug", "destination": "/conference.html" },
-    { "source": "/speakers/:slug", "destination": "/speaker.html" }
+    {
+      "source": "/conferences/:slug/agenda",
+      "destination": "/agenda"
+    },
+    {
+      "source": "/conferences/:slug/register",
+      "destination": "/register"
+    },
+    {
+      "source": "/conferences/:slug/hotels",
+      "destination": "/hotels"
+    },
+    {
+      "source": "/conferences/:slug/sponsor",
+      "destination": "/sponsor"
+    },
+    {
+      "source": "/conferences/:slug",
+      "destination": "/conference"
+    },
+    {
+      "source": "/speakers/:slug",
+      "destination": "/speaker"
+    }
   ],
   "functions": {
-    "api/*.js": { "maxDuration": 60 }
+    "api/*.js": {
+      "maxDuration": 60
+    }
   },
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=86400" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, stale-while-revalidate=86400"
+        }
+      ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
       ]
     }
   ]

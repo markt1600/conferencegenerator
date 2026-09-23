@@ -469,6 +469,77 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Faculty generator: proposed placeholder speakers for the organiser to */
+  /* invite. Names and organisations are fictional.                       */
+  /* ------------------------------------------------------------------ */
+  const NAME_BANK = {
+    'Europe': { first: ['Clara', 'Mathis', 'Ingrid', 'Tomas', 'Elise', 'Jonas', 'Beatrix', 'Lorenzo', 'Saoirse', 'Anders', 'Margit', 'Rafael', 'Helena', 'Piotr', 'Noor', 'Sebastian'], last: ['Voss', 'Lindahl', 'Marchetti', 'Dubois', 'Keller', 'Novak', 'Brennan', 'Sørensen', 'Almeida', 'Weber', 'Petrov', 'Castellanos', 'Hartmann', 'Jansen', 'Ferreira', 'Kowalski'] },
+    'Asia-Pacific': { first: ['Wei', 'Aiko', 'Ravi', 'Mei', 'Arjun', 'Hana', 'Kenji', 'Priya', 'Daniel', 'Siti', 'Min-jun', 'Ananya', 'Bao', 'Grace', 'Rahul', 'Yuna'], last: ['Tan', 'Nakamura', 'Krishnan', 'Lim', 'Park', 'Wong', 'Suzuki', 'Rao', 'Ng', 'Hidayat', 'Chen', 'Iyer', 'Nguyen', 'Sato', 'Goh', 'Patel'] },
+    'Americas': { first: ['Elena', 'Marcus', 'Camila', 'Andrew', 'Valentina', 'Jordan', 'Isabela', 'Nathan', 'Lucía', 'Malik', 'Sofia', 'Ethan', 'Gabriela', 'Owen', 'Mariana', 'Caleb'], last: ['Reyes', 'Whitaker', 'Oliveira', 'Bennett', 'Moreno', 'Carter', 'Delgado', 'Hughes', 'Santos', 'Foster', 'Navarro', 'Mitchell', 'Costa', 'Hayes', 'Vargas', 'Brooks'] },
+    'Middle East': { first: ['Layla', 'Omar', 'Rania', 'Karim', 'Dina', 'Tariq', 'Noura', 'Hassan', 'Yasmin', 'Faisal', 'Salma', 'Ziad'], last: ['Haddad', 'Al Mansoori', 'Khalil', 'Farhat', 'Al Sayed', 'Nasser', 'Rahman', 'Aziz', 'Barakat', 'Al Amin', 'Saleh', 'Qureshi'] },
+    'Africa': { first: ['Amina', 'Kwame', 'Zainab', 'Tendai', 'Adaeze', 'Sipho', 'Fatou', 'Chidi', 'Naledi', 'Yusuf', 'Thandiwe', 'Kofi'], last: ['Mensah', 'Okoro', 'Dlamini', 'Abebe', 'Diallo', 'Mwangi', 'Adeyemi', 'Ndlovu', 'Sow', 'Achebe', 'Moyo', 'Bello'] },
+  };
+  const CITY_BANK = {
+    'Europe': ['London, United Kingdom', 'Frankfurt, Germany', 'Paris, France', 'Amsterdam, Netherlands', 'Dublin, Ireland', 'Zurich, Switzerland', 'Stockholm, Sweden', 'Madrid, Spain', 'Milan, Italy', 'Luxembourg'],
+    'Asia-Pacific': ['Singapore', 'Hong Kong SAR', 'Tokyo, Japan', 'Sydney, Australia', 'Jakarta, Indonesia', 'Mumbai, India', 'Seoul, South Korea', 'Kuala Lumpur, Malaysia', 'Bangkok, Thailand', 'Melbourne, Australia'],
+    'Americas': ['New York, United States', 'Toronto, Canada', 'São Paulo, Brazil', 'Mexico City, Mexico', 'Chicago, United States', 'Washington, D.C., United States', 'Bogotá, Colombia', 'San Francisco, United States'],
+    'Middle East': ['Dubai, United Arab Emirates', 'Riyadh, Saudi Arabia', 'Doha, Qatar', 'Abu Dhabi, United Arab Emirates', 'Manama, Bahrain'],
+    'Africa': ['Nairobi, Kenya', 'Lagos, Nigeria', 'Johannesburg, South Africa', 'Accra, Ghana', 'Cape Town, South Africa', 'Casablanca, Morocco'],
+  };
+  const ORG_NOUNS = ['Meridian', 'Harbour', 'Northbridge', 'Atlas', 'Beacon', 'Lantern', 'Granite', 'Sterling', 'Halcyon', 'Orion', 'Kestrel', 'Compass', 'Summit', 'Vantage', 'Cobalt', 'Aurora', 'Pinnacle', 'Evergreen', 'Silverline', 'Ironbridge'];
+  const ORG_PATTERNS = {
+    law: ['{L1} & {L2} LLP', '{L1} {L2}', '{L1} Legal', '{L1} & Partners'],
+    finance: ['{N} Bank', '{N} Capital Partners', '{N} Asset Management', '{N} Payments', '{N} Digital Bank', '{N} Insurance Group', '{N} Securities', '{N} Fund Services'],
+    corporate: ['{N} Group', '{N} Holdings', '{N} Technologies', '{N} Energy', '{N} Health', '{N} Infrastructure'],
+    advisory: ['{L1} Advisory', '{N} Consulting', '{N} Forensic', '{N} RegTech', '{N} Analytics'],
+    institution: ['Institute for {T} Studies', 'Centre for {T} Policy', '{T} Research Network', 'Independent adviser (former senior regulator)'],
+  };
+  const GENERIC_TITLES = ['General Counsel', 'Head of Compliance', 'Chief Compliance Officer', 'Partner', 'Chief Risk Officer', 'Head of Legal', 'Senior Adviser', 'Director of Regulatory Affairs', 'Head of Policy', 'Deputy General Counsel', 'Head of Regulatory Change', 'Managing Director'];
+
+  function singularTitle(a) {
+    let t = String(a).split(/,|\band\b|\bor\b/)[0].trim();
+    t = t.replace(/^heads of /i, 'Head of ').replace(/^chief (\w+) officers$/i, 'Chief $1 Officer').replace(/officers$/i, 'Officer').replace(/directors$/i, 'Director').replace(/partners$/i, 'Partner').replace(/counsels?$/i, 'Counsel').replace(/leaders$/i, 'Leader').replace(/lawyers$/i, 'Lawyer').replace(/specialists$/i, 'Specialist').replace(/attorneys$/i, 'Attorney').replace(/executives$/i, 'Executive').replace(/managers$/i, 'Manager').replace(/regulators$/i, 'Regulator').replace(/founders$/i, 'Founder');
+    t = t.replace(/\bat\b.*$/i, '').replace(/\bin\b.*$/i, '').trim();
+    return t.replace(/^\w/, (c) => c.toUpperCase());
+  }
+
+  function defaultFacultyTarget(nDays) {
+    return nDays <= 1 ? 10 : nDays === 2 ? 16 : nDays === 3 ? 22 : 26;
+  }
+
+  function generateFaculty(opts) {
+    opts = opts || {};
+    const theme = opts.theme || {};
+    const count = Math.max(0, Math.min(40, opts.count || 0));
+    const region = REGIONS[opts.region] ? opts.region : 'International';
+    const random = rng((opts.seed || 'faculty') + ':faculty');
+    const regions = Object.keys(NAME_BANK);
+    const existing = new Set((opts.existing || []).map((s) => String(s.name || '').toLowerCase()));
+    const topic = (theme.keywords && theme.keywords[0]) ? String(theme.keywords[0]).replace(/^\w/, (c) => c.toUpperCase()) : (theme.name || 'Regulatory');
+    const titles = shuffle(((theme.audiences || []).map(singularTitle).filter((t) => t && t.length < 48 && !/^regulator/i.test(t) && !/vendor|provider|investor|founder|recruiter|educator|academic/i.test(t))).concat(GENERIC_TITLES), random);
+    const out = [];
+    let guard = 0;
+    while (out.length < count && guard < count * 8) {
+      guard++;
+      const homeRegion = region !== 'International' && random() < 0.55 ? region : regions[Math.floor(random() * regions.length)];
+      const bank = NAME_BANK[homeRegion];
+      const name = bank.first[Math.floor(random() * bank.first.length)] + ' ' + bank.last[Math.floor(random() * bank.last.length)];
+      if (existing.has(name.toLowerCase())) continue;
+      existing.add(name.toLowerCase());
+      const title = titles[out.length % titles.length];
+      const kind = /partner|lawyer|attorney|counsel$/i.test(title) && random() < 0.7 ? 'law' : /compliance|risk|mlro|financial crime|regulatory|legal/i.test(title) ? (random() < 0.6 ? 'finance' : 'corporate') : /adviser|policy|research|professor/i.test(title) ? 'institution' : (random() < 0.5 ? 'advisory' : 'corporate');
+      const pats = ORG_PATTERNS[kind];
+      const pat = pats[Math.floor(random() * pats.length)];
+      const anyLast = () => { const b = NAME_BANK[regions[Math.floor(random() * regions.length)]]; return b.last[Math.floor(random() * b.last.length)]; };
+      const org = fill(pat, { N: ORG_NOUNS[Math.floor(random() * ORG_NOUNS.length)], L1: anyLast(), L2: anyLast(), T: topic });
+      const location = CITY_BANK[homeRegion][Math.floor(random() * CITY_BANK[homeRegion].length)];
+      const kw = shuffle((theme.keywords || ['regulation', 'compliance', 'governance']).slice(), random).slice(0, 3).map((k) => String(k).replace(/^\w/, (c) => c.toUpperCase()));
+      out.push({ name, title, org, location, expertise: kw, bio: null, linkedin: null, proposed: true, generated: true });
+    }
+    return out;
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Conference generator (offline planner)                              */
   /* ------------------------------------------------------------------ */
   const GENERIC_BANK = [
@@ -565,12 +636,19 @@
     const currency = brief.currency || currencyFor(country);
     const expected = Number(brief.expected) || 300;
     const options = Object.assign({ welcomeReception: true, gala: nDays >= 2, workshopsDay: nDays >= 4, excursion: nDays >= 4, roundtables: true, livestream: false }, brief.options || {});
-    const speakers = normaliseSpeakers(brief.speakers);
-    const speakerIds = speakers.map((s) => s.id);
     const title = String(brief.title || fill(theme.titlePattern, { year })).trim();
     const edition = brief.edition || (city.split(',')[0] + ' ' + year);
     const id = brief.id || slugify(title + ' ' + city.split(',')[0] + ' ' + year);
     const random = rng(id);
+    // Roster: the organiser's speakers first (flagged supplied), then proposed placeholders up to the faculty target.
+    const suppliedRaw = (brief.speakers || []).filter((s) => s && (typeof s === 'string' ? s.trim() : String(s.name || '').trim()));
+    const facultyTarget = brief.fillFaculty === false ? 0 : (Number(brief.facultyTarget) || defaultFacultyTarget(nDays));
+    const supplied = normaliseSpeakers(suppliedRaw).map((s) => Object.assign(s, { supplied: s.supplied !== false && !s.proposed }));
+    const missing = Math.max(0, facultyTarget - supplied.length);
+    const proposed = missing > 0 ? generateFaculty({ theme, count: missing, region, seed: id, existing: supplied }) : [];
+    const speakers = normaliseSpeakers(supplied.concat(proposed));
+    const speakerIds = speakers.map((s) => s.id);
+    const suppliedIds = speakers.filter((s) => s.supplied).map((s) => s.id);
     const vars = { city: city.split(',')[0], country: country || region, region, year, n: nDays };
 
     // Tracks
@@ -598,7 +676,7 @@
       }
       return out;
     };
-    const chairs = speakerIds.slice(0, Math.min(2, speakerIds.length));
+    const chairs = suppliedIds.slice(0, 2).concat(speakerIds.filter((x) => suppliedIds.indexOf(x) < 0)).slice(0, Math.min(2, speakerIds.length));
 
     // Day structure
     const arrivalDay = nDays >= 4;
@@ -620,7 +698,7 @@
       const sessions = [];
       const isFirst = d === 0, isLast = d === fullDays - 1;
       if (isFirst) sessions.push(S('opening', 'Chairs’ Welcome and Framing', 'The programme chairs set out the questions the conference will address.', chairs));
-      sessions.push(S('keynote', (isFirst ? 'Opening Keynote: ' : 'Keynote: ') + nextTitle(), '', take(1, chairs)));
+      sessions.push(S('keynote', (isFirst ? 'Opening Keynote: ' : 'Keynote: ') + nextTitle(), '', isFirst && suppliedIds.length ? [suppliedIds[0]] : (suppliedIds[d] && d < suppliedIds.length ? [suppliedIds[d]] : take(1, chairs))));
       sessions.push(S('panel', nextTitle(), '', take(3), tracks[0] ? tracks[0].id : null));
       // Parallel block one
       const block1 = [];
@@ -651,6 +729,22 @@
       if (options.gala && d === galaDay && !(isFirst && !arrivalDay && options.welcomeReception && fullDays === 1)) sessions.push(S('gala', 'Conference Gala Dinner', 'The conference dinner, hosted by the Gala dinner partner. Dress code: lounge suit or national dress.', [], null, { time: '19:00', duration: 180 }));
       program.push({ label: dayLabels[d] || ('Day ' + (d + 1)), sessions });
     }
+
+    // Every supplied speaker appears in at least two sessions: add them to the first panels that lack them.
+    suppliedIds.forEach((sid) => {
+      const count = () => { let n = 0; program.forEach((d) => d.sessions.forEach((it) => (it.parallel ? it.parallel : [it]).forEach((x) => { if ((x.speakers || []).indexOf(sid) >= 0) n++; }))); return n; };
+      for (const d of program) {
+        if (count() >= 2) break;
+        for (const it of d.sessions) {
+          if (count() >= 2) break;
+          const targets = it.parallel ? it.parallel : [it];
+          for (const x of targets) {
+            if (count() >= 2) break;
+            if (x.type === 'panel' && (x.speakers || []).indexOf(sid) < 0 && (x.speakers || []).length < 4) { x.speakers = (x.speakers || []).concat([sid]); }
+          }
+        }
+      }
+    });
 
     if (workshopDay) {
       const block = [];
@@ -791,7 +885,7 @@
     hash, rng, shuffle, slugify, parseDate, isoDate, addDays, daysBetween, formatDate, formatRange, weekday, todayIso,
     minutesToTime, timeToMinutes, formatMoney, fill, regionFor, currencyFor, timezoneFor,
     status, daysUntil, schedule, layoutDay, countSessions, allSpeakerIds, registrationState, sponsorship, defaultSponsorship,
-    bioFor, plan, resolveTheme, normaliseSpeakers, sanitiseConference, initials, shade,
+    bioFor, plan, resolveTheme, normaliseSpeakers, sanitiseConference, initials, shade, generateFaculty, defaultFacultyTarget,
     DURATIONS, TYPE_LABELS, CONTENT_TYPES, EVENING_TYPES, TIER_BENEFITS,
   };
 });

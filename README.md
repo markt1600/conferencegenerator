@@ -19,6 +19,8 @@ Conference website and organiser console for **OOO**, an independent Singapore-h
 - **Conference generator** (`/admin/generator`): choose a pre-selected theme (18 themes; six compliance-focused, including *Compliance Officers & Accountability in Financial Institutions*) or define a custom theme, set dates, location and venue, add speakers with optional LinkedIn profiles, then generate:
   - **Intelligent planning with Claude** — writes the concept, a bespoke programme for each day, draft speaker biographies from the details supplied, candidate hotels, a venue recommendation and a partnership plan.
   - **Instant planner** — a deterministic engine that builds the same structure offline from the theme’s session bank.
+  - **Faculty fill**: supply one speaker or twenty. Supplied speakers are kept and given the chair and keynote slots; the rest of the programme is filled to a target size with proposed placeholder profiles (fictional names and organisations, shown as “Invited · confirmation pending” on the site) that you replace as confirmations arrive. Turn it off or change the target in the Speakers step.
+  - **LinkedIn research**: with the Claude generator, each supplied speaker with a LinkedIn URL is researched using Anthropic’s web search and web fetch tools. The biography uses only facts found in public sources, each source is listed in the console for review, and the bio is marked as a draft pending the speaker’s approval. Without an API key, the bio is drafted from the details you typed.
   - Review every part, edit the JSON if needed, then save a draft (live in your browser) or publish to the site (visible to everyone, when a server store is configured). Pages, booking, hotel and sponsorship links are created automatically.
 
 ## Architecture
@@ -46,7 +48,7 @@ tests/                     engine and AI-plumbing tests (node)
 vercel.json                clean URLs, rewrites, function limits, headers
 ```
 
-Clean URLs: `/conferences/<id>`, `/conferences/<id>/agenda|register|hotels|sponsor`, `/speakers/<id>`. Pages read the id from the path and render from the merged dataset.
+Clean URLs: `/conferences/<id>`, `/conferences/<id>/agenda|register|hotels|sponsor`, `/speakers/<id>`. Pages read the id from the path and render from the merged dataset. `404.html` also recognises these paths and renders the intended page, so deep links work even when a rewrite is not applied.
 
 ## Run locally
 
@@ -84,10 +86,12 @@ Without a Blob store the site still works: generated conferences are kept as dra
 
 The console calls `POST /api/generate` once per stage so that no single request approaches the serverless time limit (`maxDuration` is 60 seconds in `vercel.json`):
 
-1. `concept` — title, tagline, summary, three-paragraph description, tracks, key topics, highlights, audiences, hashtag, FAQ.
-2. `agenda` — one call per conference day; content sessions in running order with speaker assignments from the roster. The engine then inserts registration, breaks and lunch and lays out timings and rooms.
-3. `speakers` — draft biographies in batches of eight, written only from the details supplied (name, title, organisation, sessions). LinkedIn URLs are stored and linked but never used to infer content.
-4. `partners` — candidate hotels marked as proposals, a venue suggestion when none was given, sponsor prospect categories and travel notes.
+1. `faculty` — when fewer speakers are supplied than the faculty target, proposes fictional placeholder profiles matched to the theme and region.
+2. `concept` — title, tagline, summary, three-paragraph description, tracks, key topics, highlights, audiences, hashtag, FAQ.
+3. `agenda` — one call per conference day; content sessions in running order with speaker assignments from the roster, supplied speakers first. The engine then inserts registration, breaks and lunch and lays out timings and rooms.
+4. `research` — for supplied speakers with a LinkedIn URL (batches of four), uses the `web_search` and `web_fetch` server tools to collect facts with source URLs; resumes `pause_turn` automatically. Web searches are billed by Anthropic in addition to tokens.
+5. `speakers` — draft biographies in batches of eight, written from the details supplied plus researched facts where available; nothing unsourced is added.
+6. `partners` — candidate hotels marked as proposals, a venue suggestion when none was given, sponsor prospect categories and travel notes.
 
 Each stage uses the Anthropic SDK with structured outputs (`output_config.format` from a Zod schema), adaptive thinking at the configured effort, prompt caching on the system prompt, and Anthropic’s server-side refusal fallbacks (`fallbacks: "default"`). If a stage fails, the console keeps the instant planner’s version of that part and continues. Everything the model returns is validated (`Engine.sanitiseConference`) before it is saved.
 

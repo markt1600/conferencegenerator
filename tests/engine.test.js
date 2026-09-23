@@ -135,7 +135,8 @@ test('plan(): five-day compliance conference with arrival day, three full days a
   assert.strictEqual(conf.currency, undefined);
   assert.strictEqual(conf.registration.currency, 'HKD');
   assert.strictEqual(conf.region, 'Asia-Pacific');
-  assert.strictEqual(conf.speakers.length, 6);
+  assert.strictEqual(conf.speakers.filter((s) => s.supplied).length, 6, 'six supplied speakers kept');
+  assert.strictEqual(conf.speakers.length, Engine.defaultFacultyTarget(5), 'faculty filled to the target');
   assert.strictEqual(conf.speakers[0].linkedin, 'https://linkedin.com/in/ada');
   assert.strictEqual(conf.chairs.length, 2);
   assert.strictEqual(conf.hotels.length, 3);
@@ -188,6 +189,39 @@ test('defaultSponsorship scales with attendance and formats in currency', () => 
   assert.strictEqual(sp.tiers[0].name, 'Platinum');
   assert.ok(sp.tiers[0].price > sp.tiers[1].price);
   assert.strictEqual(Engine.formatMoney(sp.tiers[0].price, 'GBP').charAt(0), '£');
+});
+
+test('plan(): a single supplied speaker is kept prominent and the faculty is filled with proposed placeholders', () => {
+  const conf = Engine.plan({ theme: 'financial-services-regulatory-compliance', start: '2029-12-01', end: '2029-12-01', city: 'Bangkok', country: 'Thailand', speakers: [{ name: 'Somchai Prasert', title: 'Head of Compliance', org: 'Siam Example Bank', linkedin: 'https://www.linkedin.com/in/somchai-example' }] }, { themes: MLS.THEMES });
+  assert.strictEqual(conf.speakers.length, Engine.defaultFacultyTarget(1));
+  const supplied = conf.speakers.filter((s) => s.supplied);
+  assert.strictEqual(supplied.length, 1);
+  assert.strictEqual(supplied[0].name, 'Somchai Prasert');
+  assert.ok(conf.speakers.filter((s) => s.proposed).length === conf.speakers.length - 1, 'others are proposed placeholders');
+  assert.strictEqual(conf.chairs[0], supplied[0].id, 'supplied speaker chairs');
+  const sched = Engine.schedule(conf, MLS.THEMES.find((t) => t.id === conf.themeId));
+  const appearances = sched[0].flat.filter((s) => (s.speakers || []).indexOf(supplied[0].id) >= 0);
+  assert.ok(appearances.some((s) => s.type === 'keynote'), 'supplied speaker gives the opening keynote');
+  assert.ok(appearances.length >= 2, 'supplied speaker appears at least twice, got ' + appearances.length);
+  const tba = sched[0].flat.filter((s) => Engine.CONTENT_TYPES.indexOf(s.type) >= 0 && !s.auto && s.type !== 'networking' && !(s.speakers || []).length);
+  assert.strictEqual(tba.length, 0, 'no sessions left without speakers');
+  const names = new Set(conf.speakers.map((s) => s.name));
+  assert.strictEqual(names.size, conf.speakers.length, 'no duplicate names');
+});
+
+test('plan(): fillFaculty false keeps only supplied speakers', () => {
+  const conf = Engine.plan({ theme: 'esg-climate', start: '2027-05-04', end: '2027-05-05', city: 'Oslo', country: 'Norway', fillFaculty: false, speakers: ['One Person'] }, { themes: MLS.THEMES });
+  assert.strictEqual(conf.speakers.length, 1);
+});
+
+test('generateFaculty produces plausible, unique placeholder profiles', () => {
+  const theme = MLS.THEMES.find((t) => t.id === 'financial-crime-compliance');
+  const list = Engine.generateFaculty({ theme, count: 12, region: 'Asia-Pacific', seed: 'x' });
+  assert.strictEqual(list.length, 12);
+  list.forEach((s) => { assert.ok(s.name && s.title && s.org && s.location, JSON.stringify(s)); assert.strictEqual(s.proposed, true); assert.ok(s.expertise.length >= 1); });
+  assert.strictEqual(new Set(list.map((s) => s.name)).size, 12);
+  const again = Engine.generateFaculty({ theme, count: 12, region: 'Asia-Pacific', seed: 'x' });
+  assert.deepStrictEqual(again.map((s) => s.name), list.map((s) => s.name), 'deterministic for a seed');
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed\n');

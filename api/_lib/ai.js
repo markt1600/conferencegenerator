@@ -81,6 +81,28 @@ const PartnersSchema = z.object({
   travelNotes: z.array(z.object({ q: z.string(), a: z.string() })),
 });
 
+const FacultySchema = z.object({
+  speakers: z.array(z.object({
+    name: z.string().describe('A plausible but fictional full name, not a real public figure.'),
+    title: z.string(),
+    org: z.string().describe('A fictional organisation or a generic descriptor such as "a regional retail bank".'),
+    location: z.string(),
+    expertise: z.array(z.string()).describe('Three short tags.'),
+    bio: z.string().describe('Two sentences, third person, describing the role and perspective; no invented achievements.'),
+  })),
+});
+
+const ResearchSchema = z.object({
+  speakers: z.array(z.object({
+    id: z.string(),
+    found: z.boolean(),
+    headline: z.string().nullable(),
+    facts: z.array(z.object({ text: z.string(), source: z.string() })),
+    sources: z.array(z.string()),
+    note: z.string().nullable(),
+  })),
+});
+
 function client(apiKeyOverride) {
   const apiKey = apiKeyOverride || process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -165,23 +187,27 @@ Rules:
 - Do not include registration, coffee breaks or lunch; the scheduler inserts them.
 ${rules}
 - Titles: specific, at most 14 words, never generic ("Panel discussion", "Session 1"). Abstracts: one or two sentences (25-45 words) stating the question the session answers and what delegates take away. Do not repeat any title in titles_already_used.
-- speakerIds: use ids from speaker_roster only. Keynote: one speaker. Fireside: two. Panel: three or four. Workshop and masterclass: one or two. Case study: one. Roundtable: two or three. Opening and closing: the chairs (conference.chairIds). Match speakers to their expertise; nobody appears twice within one parallel item; spread appearances evenly and do not overuse the chairs. If the roster is empty, use empty arrays.
+- speakerIds: use ids from speaker_roster only. Roster entries with supplied: true are the organiser's confirmed speakers: give each of them at least two sessions, including a keynote or a plenary panel, before using entries with proposed: true (placeholders the organiser will invite). Keynote: one speaker. Fireside: two. Panel: three or four. Workshop and masterclass: one or two. Case study: one. Roundtable: two or three. Opening and closing: the chairs (conference.chairIds). Match speakers to their expertise; nobody appears twice within one parallel item; spread appearances evenly and do not overuse the chairs. If the roster is empty, use empty arrays.
 - time: null for all sessions except the fixed events supplied. durationMinutes: null for defaults, except where stated.
 - label: a short editorial label for the day (two to four words).`;
   return structured(c, AgendaSchema, prompt, 8000);
 }
 
 async function speakers(c, payload) {
+  const research = payload.research || [];
   const prompt = `Write draft speaker biographies for the conference website.
 
 ${fence('conference', payload.conference || {})}
 ${fence('speakers', payload.speakers || [])}
+${fence('research_notes', research)}
 
 Rules:
 - One entry per supplied speaker, using the same id.
-- Two or three sentences (45-80 words), third person, British English. Base the biography only on the details supplied: name, title, organisation, location, notes and the sessions they are speaking in. Do not invent employers, career history, education, awards, cases, clients or years of experience. Where only a name is supplied, write one or two neutral sentences about the perspective they bring to their sessions.
-- A LinkedIn URL is a reference for the organiser only; do not describe or infer its contents.
-- expertise: three to five short tags consistent with the title and sessions. location: copy the supplied location or return null.`;
+- Two or three sentences (45-80 words), third person, British English.
+- Where research_notes has an entry for the speaker with found: true, you may use those facts and only those facts, in addition to the details supplied. Use at most three researched facts and prefer current role, prior roles and areas of expertise. Never add anything that is not in the notes or the supplied details.
+- Where there are no research notes, or found is false, base the biography only on the details supplied: name, title, organisation, location, notes and the sessions they are speaking in. Do not invent employers, career history, education, awards, cases, clients or years of experience. Where only a name is supplied, write one or two neutral sentences about the perspective they bring to their sessions.
+- Speakers marked proposed: true are placeholders the organiser will invite; keep their biographies to two neutral sentences about the role.
+- expertise: three to five short tags consistent with the title, notes and sessions. location: copy the supplied location or return null.`;
   return structured(c, SpeakersSchema, prompt, 8000);
 }
 
@@ -199,6 +225,94 @@ Rules:
   return structured(c, PartnersSchema, prompt, 6000);
 }
 
+async function faculty(c, payload) {
+  const brief = payload.brief || {};
+  const count = Math.max(1, Math.min(40, Number(payload.count) || 10));
+  const prompt = `Propose ${count} placeholder speaker profiles for the organiser to invite.
+
+${fence('conference', brief)}
+${fence('speakers_already_confirmed', payload.existing || [])}
+
+Rules:
+- These are placeholders that the organiser will replace with confirmed speakers. Invent plausible, diverse full names that do not belong to real public figures; never use the name of a real person you know of. Do not reuse or resemble the confirmed speakers' names or organisations.
+- Organisations must be fictional (e.g. "Northbridge Capital Partners", "Haddad & Farhat LLP") or generic descriptors (e.g. "a regional retail bank"). Never name a real company, regulator, university or law firm.
+- Roles should match the conference audience (${(brief.audiences || []).join('; ') || 'general counsel, heads of compliance, private practitioners, former regulators'}) and mix in-house, private practice, former regulators and academics. About half should be based in or near ${brief.region || 'the host region'}; the rest international.
+- Titles are realistic and specific; location is "City, Country". expertise: three short tags drawn from the theme. bio: two sentences in the third person describing the role and the perspective they bring; no awards, cases, clients or numbers.`;
+  return structured(c, FacultySchema, prompt, 8000);
+}
+
+function extractJson(text) {
+  const t = String(text || '').trim();
+  const fenced = /```(?:json)?\s*([\s\S]*?)```/.exec(t);
+  const candidate = fenced ? fenced[1] : t;
+  const start = candidate.indexOf('{');
+  const end = candidate.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new Error('no JSON object in response');
+  return JSON.parse(candidate.slice(start, end + 1));
+}
+
+/* Public-profile research with Anthropic's server-side web search and web fetch tools.
+ * Returns only facts the model found in sources, each with its URL, so bios can be checked. */
+async function research(c, payload) {
+  const speakers = (payload.speakers || []).slice(0, 4);
+  if (!speakers.length) return { data: { speakers: [] }, usage: { input_tokens: 0, output_tokens: 0 }, model: MODEL() };
+  const prompt = `Research the public professional profiles of these conference speakers so the organiser can draft accurate biographies.
+
+${fence('conference', payload.conference || {})}
+${fence('speakers', speakers)}
+
+For each speaker:
+1. Start from the LinkedIn URL supplied. Fetch it if you can; if it is not accessible, search for the person using their name together with the organisation and the LinkedIn profile slug, and use LinkedIn search snippets, the organisation's website, conference biographies, publications and reputable news.
+2. Record only facts that appear in a source: current role and organisation, previous roles, areas of expertise, notable publications or speaking, qualifications. Each fact carries the URL where you found it. Quote or closely paraphrase; do not infer.
+3. If you cannot confidently identify the person (for example several people share the name, or nothing matches the organisation supplied), set found to false and explain in note. Never guess.
+
+Return ONLY a JSON object of this shape and nothing else:
+{"speakers":[{"id":"<id as supplied>","found":true,"headline":"<current role, organisation>","facts":[{"text":"...","source":"https://..."}],"sources":["https://..."],"note":null}]}`;
+  const tools = [
+    { type: 'web_search_20260209', name: 'web_search', max_uses: 8 },
+    { type: 'web_fetch_20260209', name: 'web_fetch', max_uses: 6 },
+  ];
+  const messages = [{ role: 'user', content: prompt }];
+  let msg = null;
+  let continuations = 0;
+  const usage = { input_tokens: 0, output_tokens: 0, web_searches: 0 };
+  for (;;) {
+    const stream = c.beta.messages.stream({
+      model: MODEL(), max_tokens: 8000,
+      betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default',
+      output_config: { effort: EFFORT() },
+      tools,
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      messages,
+    });
+    msg = await stream.finalMessage();
+    usage.input_tokens += msg.usage.input_tokens || 0;
+    usage.output_tokens += msg.usage.output_tokens || 0;
+    if (msg.usage && msg.usage.server_tool_use && msg.usage.server_tool_use.web_search_requests) usage.web_searches += msg.usage.server_tool_use.web_search_requests;
+    if (msg.stop_reason === 'pause_turn' && continuations < 3) {
+      // The server-side tool loop paused; resend with the assistant turn appended and it resumes.
+      messages.push({ role: 'assistant', content: msg.content });
+      continuations++;
+      continue;
+    }
+    break;
+  }
+  if (msg.stop_reason === 'refusal') { const err = new Error('The model declined the research request.'); err.status = 422; throw err; }
+  const text = msg.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n');
+  const foundUrls = [];
+  msg.content.forEach((b) => {
+    if (b.type === 'web_search_tool_result' && Array.isArray(b.content)) b.content.forEach((r) => { if (r && r.url) foundUrls.push(r.url); });
+  });
+  let data;
+  try { data = ResearchSchema.parse(extractJson(text)); }
+  catch (_) {
+    data = { speakers: speakers.map((sp) => ({ id: sp.id, found: false, headline: null, facts: [], sources: foundUrls.slice(0, 5), note: 'The research response could not be read; the biography will rest on the details supplied.' })) };
+  }
+  // Only keep facts whose source is a URL
+  data.speakers.forEach((sp) => { sp.facts = (sp.facts || []).filter((f) => /^https?:\/\//i.test(f.source)); sp.sources = Array.from(new Set((sp.sources || []).concat(sp.facts.map((f) => f.source)).filter((u) => /^https?:\/\//i.test(u)))); if (!sp.facts.length && sp.found) sp.found = false; });
+  return { data, usage, model: msg.model };
+}
+
 async function test(c) {
   const started = Date.now();
   const msg = await c.beta.messages.create({
@@ -211,7 +325,7 @@ async function test(c) {
   return { data: { reply: text, latencyMs: Date.now() - started }, usage: msg.usage, model: msg.model };
 }
 
-const STAGES = { concept, agenda, speakers, partners, test };
+const STAGES = { concept, agenda, speakers, partners, faculty, research, test };
 
 async function runStage(stage, payload, apiKeyOverride, injectedClient) {
   const fn = STAGES[stage];
@@ -232,4 +346,4 @@ function describeError(err) {
   return { status: err.status || 500, error: err.message || 'Generation failed', code: err.code };
 }
 
-module.exports = { runStage, describeError, SESSION_TYPES, MODEL, EFFORT, schemas: { ConceptSchema, AgendaSchema, SpeakersSchema, PartnersSchema } };
+module.exports = { runStage, describeError, SESSION_TYPES, MODEL, EFFORT, schemas: { ConceptSchema, AgendaSchema, SpeakersSchema, PartnersSchema, FacultySchema, ResearchSchema }, extractJson };

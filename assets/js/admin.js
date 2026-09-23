@@ -180,7 +180,7 @@
       theme: '', customTheme: { name: '', description: '', tracks: '', keywords: '', audiences: '' },
       title: '', start: '', end: '', city: '', country: '', region: '', venue: '', venueAddress: '', expected: 300, currency: '',
       options: { welcomeReception: true, gala: true, workshopsDay: true, excursion: true, roundtables: true, livestream: false },
-      registrationOpen: true, cfpOpen: true,
+      registrationOpen: true, cfpOpen: true, fillFaculty: true, facultyTarget: 0,
       speakers: [{ name: '', title: '', org: '', linkedin: '', notes: '' }, { name: '', title: '', org: '', linkedin: '', notes: '' }, { name: '', title: '', org: '', linkedin: '', notes: '' }],
     },
     mode: 'ai',
@@ -279,7 +279,10 @@
       };
       $$('#wizard input, #wizard select').forEach((el) => el.addEventListener('change', read));
       $$('#wizard input').forEach((el) => el.addEventListener('input', read));
-      $('#start').addEventListener('change', () => { if (!$('#end').value || $('#end').value < $('#start').value) { $('#end').value = $('#start').value; read(); } if (t && (!b.title || b.title === suggested)) { $('#title').value = Engine.fill(t.titlePattern, { year: $('#start').value.slice(0, 4) }); read(); } });
+      let lastSuggested = suggested;
+      const resuggest = () => { const y = $('#start').value.slice(0, 4); if (t && /^\d{4}$/.test(y) && (!b.title || b.title === lastSuggested)) { lastSuggested = Engine.fill(t.titlePattern, { year: y }); $('#title').value = lastSuggested; read(); } };
+      $('#start').addEventListener('input', resuggest);
+      $('#start').addEventListener('change', () => { if (!$('#end').value || $('#end').value < $('#start').value) { $('#end').value = $('#start').value; read(); } resuggest(); });
       $('#back0').addEventListener('click', () => Generator.go(0));
       $('#back').addEventListener('click', () => Generator.go(0));
       $('#next').addEventListener('click', () => {
@@ -296,13 +299,18 @@
     /* Step 2: speakers */
     step2() {
       const b = Generator.state.brief;
+      const nDays = b.start && b.end ? Engine.daysBetween(b.start, b.end) + 1 : 1;
+      const defaultTarget = Engine.defaultFacultyTarget(nDays);
       const row = (s, i) => '<div class="speaker-row" data-i="' + i + '"><div><label>Full name</label><input data-k="name" value="' + esc(s.name) + '" placeholder="e.g. Amara Okafor"></div><div><label>Title</label><input data-k="title" value="' + esc(s.title) + '" placeholder="Chief Compliance Officer"></div><div><label>Organisation</label><input data-k="org" value="' + esc(s.org) + '" placeholder="Northgate Bank"></div><div><label>LinkedIn profile (optional)</label><input data-k="linkedin" value="' + esc(s.linkedin) + '" placeholder="linkedin.com/in/…"></div><div><button class="btn btn-ghost btn-sm" type="button" data-remove="' + i + '" aria-label="Remove speaker">Remove</button></div><div style="grid-column:1 / -1"><label>Expertise or notes (optional)</label><input data-k="notes" value="' + esc(s.notes) + '" placeholder="AML, sanctions; former regulator; happy to keynote"></div></div>';
       html('#wizard', '<div class="panel"><h2>Speakers</h2><p class="muted">Add the speakers you have confirmed or invited. The first two become programme chairs. LinkedIn profiles are stored and linked from each speaker page; biographies are drafted from the details you enter (the AI mode never infers content from the profile itself). You can also generate a programme with no speakers and add them later.</p>' +
         '<div id="rows">' + b.speakers.map(row).join('') + '</div>' +
         '<div class="btn-row mt-2"><button class="btn btn-outline" id="add">Add speaker</button><button class="btn btn-ghost" id="paste-toggle">Paste a list</button></div>' +
         '<div id="paste" class="hide mt-2"><div class="field"><label for="paste-text">One speaker per line: Name | Title | Organisation | LinkedIn URL | Notes</label><textarea id="paste-text" placeholder="Amara Okafor | Group Chief Compliance Officer | Northgate Bank plc | https://www.linkedin.com/in/example | AML, sanctions"></textarea></div><button class="btn btn-outline btn-sm" id="paste-apply">Add these speakers</button></div>' +
+        '<h3 class="mt-4">Faculty size</h3><div class="grid grid-2"><label class="check"><input type="checkbox" id="fill-faculty"' + (b.fillFaculty !== false ? ' checked' : '') + '><span><strong>Fill the faculty with proposed speakers</strong><br><span class="small muted">Your speakers are kept and given the chair and keynote slots. The rest of the programme is filled with placeholder profiles marked “Invited” for you to replace as confirmations arrive. With Claude, the placeholders are written to match the theme and region.</span></span></label>' + UI.field({ name: 'faculty-target', label: 'Total speakers to plan for', type: 'number', value: b.facultyTarget || defaultTarget, attrs: ' min="1" max="40"', hint: 'Default ' + defaultTarget + ' for a ' + nDays + '-day programme.' }) + '</div>' +
+        '<div class="notice mt-3"><strong>LinkedIn profiles.</strong> With the Claude generator, each supplied profile is researched with web search and the biography is drafted only from facts found in public sources, with the sources listed for your review. Biographies remain marked as drafts pending the speaker’s approval.</div>' +
         '<div class="btn-row mt-4"><button class="btn btn-outline" id="back">Back</button><button class="btn btn-primary btn-lg" id="next">Continue to generation</button></div></div>');
-      const read = () => { b.speakers = $$('.speaker-row').map((r) => ({ name: $('[data-k="name"]', r).value, title: $('[data-k="title"]', r).value, org: $('[data-k="org"]', r).value, linkedin: $('[data-k="linkedin"]', r).value, notes: $('[data-k="notes"]', r).value })); Generator.save(); };
+      const read = () => { b.speakers = $$('.speaker-row').map((r) => ({ name: $('[data-k="name"]', r).value, title: $('[data-k="title"]', r).value, org: $('[data-k="org"]', r).value, linkedin: $('[data-k="linkedin"]', r).value, notes: $('[data-k="notes"]', r).value })); b.fillFaculty = $('#fill-faculty').checked; b.facultyTarget = Math.max(1, Math.min(40, +$('#faculty-target').value || defaultTarget)); Generator.save(); };
+      $('#fill-faculty').addEventListener('change', read); $('#faculty-target').addEventListener('input', read);
       $('#rows').addEventListener('input', read);
       $('#rows').addEventListener('click', (e) => { const btn = e.target.closest('[data-remove]'); if (!btn) return; read(); b.speakers.splice(+btn.dataset.remove, 1); if (!b.speakers.length) b.speakers.push({ name: '', title: '', org: '', linkedin: '', notes: '' }); Generator.save(); Generator.render(); });
       $('#add').addEventListener('click', () => { read(); b.speakers.push({ name: '', title: '', org: '', linkedin: '', notes: '' }); Generator.save(); Generator.render(); });
@@ -320,7 +328,7 @@
       const aiOk = aiAvailable();
       if (!aiOk) st.mode = 'instant';
       html('#wizard', '<div class="panel"><h2>Generate the conference</h2>' +
-        '<div class="mode-cards"><button type="button" class="mode-card' + (st.mode === 'ai' ? ' selected' : '') + '" data-mode="ai"' + (aiOk ? '' : ' disabled') + '><strong>Intelligent planning with Claude</strong><span class="small">Writes the concept, a bespoke programme for each day, draft speaker biographies from the details you supplied, candidate hotels and a partnership plan. Runs in ' + (2 + nDays + Math.ceil(speakers.length / 8)) + ' short steps.' + (aiOk ? '' : ' <br><span style="color:var(--danger)">Requires ANTHROPIC_API_KEY (or a session key in Settings).</span>') + '</span></button>' +
+        '<div class="mode-cards"><button type="button" class="mode-card' + (st.mode === 'ai' ? ' selected' : '') + '" data-mode="ai"' + (aiOk ? '' : ' disabled') + '><strong>Intelligent planning with Claude</strong><span class="small">Writes the concept, a bespoke programme for each day, draft speaker biographies from the details you supplied, candidate hotels and a partnership plan. Runs in ' + (2 + nDays + Math.ceil(Math.max(speakers.length, (st.brief.fillFaculty !== false ? (st.brief.facultyTarget || Engine.defaultFacultyTarget(nDays)) : speakers.length)) / 8) + (st.brief.fillFaculty !== false ? 1 : 0) + Math.ceil(speakers.filter((s) => s.linkedin && s.linkedin.trim()).length / 4)) + ' short steps, including research of any LinkedIn profiles you supplied.' + (aiOk ? '' : ' <br><span style="color:var(--danger)">Requires ANTHROPIC_API_KEY (or a session key in Settings).</span>') + '</span></button>' +
         '<button type="button" class="mode-card' + (st.mode === 'instant' ? ' selected' : '') + '" data-mode="instant"><strong>Instant planner</strong><span class="small">Builds the full structure immediately from the theme’s session bank: tracks, a timed programme, registration tiers, sponsorship packages and a hotel plan. Works offline; no API key needed.</span></button></div>' +
         '<div class="btn-row mt-3"><button class="btn btn-outline" id="back">Back</button><button class="btn btn-primary btn-lg" id="run">' + (st.result ? 'Regenerate' : 'Generate conference') + '</button>' + (st.result ? '<button class="btn btn-ghost" id="review">Review current result →</button>' : '') + '</div>' +
         '<div id="progress" class="hide mt-3"><div class="progress"><span id="bar"></span></div><div class="log" id="log" aria-live="polite"></div></div></div>');
@@ -336,7 +344,8 @@
       return {
         theme, title: b.title, start: b.start, end: b.end, city: b.city, country: b.country, region: b.region || undefined, venue: b.venue || undefined, venueAddress: b.venueAddress || undefined, expected: b.expected, currency: b.currency || undefined,
         options: b.options, registrationOpen: b.registrationOpen, cfpOpen: b.cfpOpen,
-        speakers: b.speakers.filter((s) => s.name.trim()).map((s) => ({ name: s.name, title: s.title, org: s.org, linkedin: s.linkedin || null, expertise: s.notes ? s.notes.split(/[,;]/).map((x) => x.trim()).filter(Boolean) : [] })),
+        fillFaculty: b.fillFaculty !== false, facultyTarget: b.facultyTarget || undefined,
+        speakers: b.speakers.filter((s) => s.name.trim()).map((s) => ({ name: s.name, title: s.title, org: s.org, linkedin: s.linkedin || null, supplied: true, expertise: s.notes ? s.notes.split(/[,;]/).map((x) => x.trim()).filter(Boolean) : [] })),
       };
     },
 
@@ -349,14 +358,33 @@
       let done = 0, total = 1;
       const tick = () => { done++; $('#bar').style.width = Math.min(100, Math.round((done / total) * 100)) + '%'; };
       try {
+        const brief = Generator.briefForEngine();
+        const nDays = Engine.daysBetween(brief.start, brief.end) + 1;
+        const target = brief.fillFaculty ? (brief.facultyTarget || Engine.defaultFacultyTarget(nDays)) : brief.speakers.length;
+        const missing = Math.max(0, target - brief.speakers.length);
+        if (st.mode === 'ai' && missing > 0) {
+          total = 3 + nDays + Math.ceil(target / 8) + Math.ceil(brief.speakers.filter((s) => s.linkedin).length / 4);
+          $('#bar').style.width = '2%';
+          log('Claude · proposing ' + missing + ' placeholder speaker profiles to complete the faculty…');
+          try {
+            const theme = Generator.theme();
+            const started = Date.now();
+            const r = await callGenerate('faculty', { count: missing, brief: { title: brief.title, theme: theme ? theme.name : '', description: theme ? theme.description : '', keywords: theme ? theme.keywords : [], audiences: theme ? theme.audiences : [], city: brief.city, country: brief.country, region: brief.region || Engine.regionFor(brief.country), year: brief.start.slice(0, 4) }, existing: brief.speakers.map((x) => ({ name: x.name, title: x.title, org: x.org })) });
+            const generated = (r.data.speakers || []).slice(0, missing).map((x) => Object.assign({}, x, { proposed: true, linkedin: null, bioDraft: true }));
+            brief.speakers = brief.speakers.concat(generated);
+            brief.fillFaculty = false;
+            log('  ✓ ' + generated.length + ' proposed speakers (' + Math.round((Date.now() - started) / 100) / 10 + 's)', 'ok');
+          } catch (err) { log('  ✗ faculty stage failed (' + err.message + '); the planner’s placeholders will be used.', 'err'); }
+          tick();
+        }
         log('Building the base plan from the theme, dates and speakers…');
-        let conf = Engine.plan(Generator.briefForEngine(), { themes: MLS.THEMES });
+        let conf = Engine.plan(brief, { themes: MLS.THEMES });
         if (st.editing) conf.id = st.editing;
         conf.aiAssisted = false;
         tick();
-        log('Base plan ready: ' + conf.program.length + ' day(s), ' + conf.tracks.length + ' tracks, ' + conf.speakers.length + ' speakers.', 'ok');
+        log('Base plan ready: ' + conf.program.length + ' day(s), ' + conf.tracks.length + ' tracks, ' + conf.speakers.length + ' speakers (' + conf.speakers.filter((x) => x.supplied).length + ' supplied, ' + conf.speakers.filter((x) => x.proposed).length + ' proposed).', 'ok');
         if (st.mode === 'ai') {
-          total = 2 + conf.program.length + Math.ceil(conf.speakers.length / 8) + 1;
+          if (!(missing > 0)) total = 2 + conf.program.length + Math.ceil(conf.speakers.length / 8) + Math.ceil(conf.speakers.filter((x) => x.supplied && x.linkedin).length / 4) + 1;
           $('#bar').style.width = Math.round((done / total) * 100) + '%';
           await Generator.runAI(conf, log, tick);
         }
@@ -403,7 +431,7 @@
       } catch (err) { log('  ✗ concept stage failed (' + err.message + '); keeping the planner’s concept.', 'err'); tick(); }
 
       // 2. Agenda, one day at a time
-      const roster = conf.speakers.map((s) => ({ id: s.id, name: s.name, title: s.title, org: s.org, expertise: s.expertise }));
+      const roster = conf.speakers.map((s) => ({ id: s.id, name: s.name, title: s.title, org: s.org, expertise: s.expertise, supplied: !!s.supplied, proposed: !!s.proposed }));
       const fullIdx = conf.program.map((d, i) => (/^Arrival/.test(d.label) || /^Masterclass/.test(d.label) ? -1 : i)).filter((i) => i >= 0);
       const used = [];
       for (let i = 0; i < conf.program.length; i++) {
@@ -425,17 +453,30 @@
         } catch (err) { log('  ✗ day ' + (i + 1) + ' failed (' + err.message + '); keeping the planner’s day.', 'err'); tick(); }
       }
 
-      // 3. Speaker biographies
+      // 3. Public-profile research for supplied speakers with a LinkedIn URL (web search on Anthropic's servers)
+      const notes = {};
+      const toResearch = conf.speakers.filter((s) => s.supplied && s.linkedin);
+      for (let i = 0; i < toResearch.length; i += 4) {
+        const batch = toResearch.slice(i, i + 4);
+        try {
+          const r = await stage('research', { conference: { title: conf.title, edition: conf.edition, theme: theme ? theme.name : conf.themeName }, speakers: batch.map((s) => ({ id: s.id, name: s.name, title: s.title, org: s.org, linkedin: s.linkedin })) }, 'researching public profiles for ' + batch.map((s) => s.name).join(', '));
+          r.speakers.forEach((n) => { notes[n.id] = n; const sp = conf.speakers.find((s) => s.id === n.id); if (sp) { sp.researched = !!n.found; sp.bioSources = n.sources || []; sp.researchNote = n.note || null; } });
+          const found = r.speakers.filter((n) => n.found).length;
+          log('    ' + found + ' of ' + batch.length + ' profiles matched with sourced facts', found ? 'ok' : 'dim');
+        } catch (err) { log('  ✗ research failed (' + err.message + '); biographies will rest on the details supplied.', 'err'); tick(); }
+      }
+
+      // 4. Speaker biographies
       const sessionsFor = (id) => { const t = []; conf.program.forEach((d) => d.sessions.forEach((s) => (s.parallel ? s.parallel : [s]).forEach((x) => { if ((x.speakers || []).indexOf(id) >= 0) t.push(x.title); }))); return t; };
       for (let i = 0; i < conf.speakers.length; i += 8) {
         const batch = conf.speakers.slice(i, i + 8);
         try {
-          const r = await stage('speakers', { conference: { title: conf.title, edition: conf.edition, theme: theme ? theme.name : conf.themeName }, speakers: batch.map((s) => ({ id: s.id, name: s.name, title: s.title, org: s.org, location: s.location || null, linkedin: s.linkedin || null, notes: (s.expertise || []).join(', '), sessions: sessionsFor(s.id) })) }, 'speaker biographies ' + (i + 1) + '–' + Math.min(i + 8, conf.speakers.length));
+          const r = await stage('speakers', { conference: { title: conf.title, edition: conf.edition, theme: theme ? theme.name : conf.themeName }, speakers: batch.map((s) => ({ id: s.id, name: s.name, title: s.title, org: s.org, location: s.location || null, linkedin: s.linkedin || null, notes: (s.expertise || []).join(', '), proposed: !!s.proposed, sessions: sessionsFor(s.id) })), research: batch.filter((s) => notes[s.id]).map((s) => notes[s.id]) }, 'speaker biographies ' + (i + 1) + '–' + Math.min(i + 8, conf.speakers.length));
           r.speakers.forEach((out) => { const sp = conf.speakers.find((s) => s.id === out.id); if (!sp) return; sp.bio = out.bio; sp.bioDraft = true; if (out.expertise && out.expertise.length) sp.expertise = out.expertise; if (out.location && !sp.location) sp.location = out.location; });
         } catch (err) { log('  ✗ biographies failed (' + err.message + '); templated biographies will be used.', 'err'); tick(); }
       }
 
-      // 4. Hotels, venue and partnership plan
+      // 5. Hotels, venue and partnership plan
       try {
         const p = await stage('partners', { brief: { city: conf.city, country: conf.country, region: conf.region, venue: b.venue ? { name: b.venue, address: b.venueAddress || null } : null, start: conf.start, end: conf.end, expected: conf.expected, currency: conf.registration.currency, theme: themeBrief ? { name: themeBrief.name, sponsorCategories: themeBrief.sponsorCategories } : null, audiences: conf.audiences } }, 'hotel candidates, venue and partnership plan');
         if (p.hotels && p.hotels.length) conf.hotels = p.hotels.map((h, i) => ({ name: h.name, category: h.category, stars: h.stars, distance: h.distance, rate: h.rateEstimate, cutoff: Engine.addDays(conf.start, i === 0 ? -30 : -21), description: h.description + (h.note ? ' ' + h.note : ''), amenities: h.amenities || [], proposed: true }));
@@ -460,13 +501,13 @@
       const dayHtml = (d) => '<h4 class="mt-3">Day ' + d.number + ' · ' + esc(d.weekday) + ' ' + esc(Engine.formatDate(d.date)) + ' — ' + esc(d.label) + '</h4>' + d.slots.map((s) => s.parallel ? '<div class="mini-slot"><div class="t">' + esc(s.start) + '–' + esc(s.end) + '</div><div><div class="sub">Parallel sessions</div>' + s.parallel.map((x) => '<div class="mt-1"><strong>' + esc(x.title) + '</strong> <span class="badge">' + esc(Engine.TYPE_LABELS[x.type] || x.type) + '</span><div class="sub">' + esc((x.speakers || []).map((id) => (spk(id) || {}).name).filter(Boolean).join(', ') || 'Speakers to be announced') + (x.room ? ' · ' + esc(x.room) : '') + '</div></div>').join('') + '</div></div>' : '<div class="mini-slot"><div class="t">' + esc(s.start) + '–' + esc(s.end) + '</div><div>' + (s.auto ? '<span class="sub">' + esc(s.title) + '</span>' : '<strong>' + esc(s.title) + '</strong> <span class="badge">' + esc(Engine.TYPE_LABELS[s.type] || s.type) + '</span>' + (s.abstract ? '<div class="small muted">' + esc(s.abstract) + '</div>' : '') + '<div class="sub">' + esc((s.speakers || []).map((id) => (spk(id) || {}).name).filter(Boolean).join(', ') || (Engine.CONTENT_TYPES.indexOf(s.type) >= 0 && s.type !== 'networking' ? 'Speakers to be announced' : '')) + (s.room ? ' · ' + esc(s.room) : '') + '</div>') + '</div></div>').join('');
       html('#wizard',
         '<div class="panel"><div class="flex between wrap gap-2"><div><div class="flex wrap gap-1 mb-1"><span class="badge badge-accent">' + (st.aiUsed || c.aiAssisted ? 'AI-assisted plan' : 'Instant plan') + '</span>' + (theme ? '<span class="badge">' + esc(theme.name) + '</span>' : '') + (local ? '<span class="badge">Saved in this browser</span>' : '') + (remote ? '<span class="badge badge-ink">Published</span>' : '') + '</div><h2 class="mb-0">' + esc(c.title) + ' <span class="muted" style="font-weight:400">' + esc(c.edition) + '</span></h2><p class="muted mb-0">' + esc(fmtRange(c)) + ' · ' + esc(c.city) + ', ' + esc(c.country) + ' · ' + esc(c.venue.name) + '</p></div>' +
-          '<div class="actions"><button class="btn btn-primary" id="save-local">' + (local ? 'Update draft in this browser' : 'Save draft to this browser') + '</button><button class="btn btn-ink" id="publish"' + (health.store && health.store.configured ? '' : ' disabled title="Connect a Vercel Blob store to publish for all visitors"') + '>' + (remote ? 'Republish to site' : 'Publish to site') + '</button><button class="btn btn-outline" id="export">Export JSON</button><button class="btn btn-ghost" id="restart">Start over</button></div></div>' +
-          '<div id="publish-note" class="mt-2"></div>' +
+          '<div class="actions"><button class="btn btn-primary" id="save-local">' + (local ? 'Update draft in this browser' : 'Save draft to this browser') + '</button><button class="btn btn-ink" id="publish">' + (remote ? 'Republish to site' : 'Publish to site') + '</button><button class="btn btn-outline" id="export">Export JSON</button><button class="btn btn-ghost" id="restart">Start over</button></div></div>' +
+          '<div id="publish-note" class="mt-2">' + (health.store && health.store.configured ? '' : '<div class="notice warn"><strong>Publishing to the site needs a server store.</strong> In Vercel open the project, choose Storage → Create → Blob, connect it to this project and redeploy. The <code class="env">BLOB_READ_WRITE_TOKEN</code> variable is added for you. Until then, “Save draft” keeps the conference live in this browser only.</div>') + '</div>' +
           '<div class="kpi-row mt-3">' + [[sched.length, 'Days'], [Engine.countSessions(sched), 'Sessions'], [(c.speakers || []).length, 'Speakers'], [(c.tracks || []).length, 'Tracks']].map(([n, l]) => '<div class="kpi"><div class="num">' + n + '</div><div class="lbl">' + l + '</div></div>').join('') + '</div></div>' +
         '<div class="panel"><div class="preview-tabs" role="tablist">' + ['Overview', 'Programme', 'Speakers', 'Venue & hotels', 'Partnership', 'Registration', 'JSON'].map((t, i) => '<button role="tab" class="' + (i === 0 ? 'active' : '') + '" data-tab="' + i + '">' + t + '</button>').join('') + '</div>' +
           '<div class="preview-pane active" data-pane="0"><p class="lede">' + esc(c.tagline) + '</p><p class="muted">' + esc(c.summary) + '</p>' + (c.description || []).map((p) => '<p>' + esc(p) + '</p>').join('') + '<h4>Highlights</h4><ul class="list-check">' + (c.highlights || []).map((h) => '<li>' + esc(h) + '</li>').join('') + '</ul><h4>Tracks</h4><ul class="list-check">' + (c.tracks || []).map((t) => '<li><strong>' + esc(t.name) + '</strong>' + (t.description ? ' — ' + esc(t.description) : '') + '</li>').join('') + '</ul>' + (c.faq && c.faq.length ? '<h4>Practical information</h4>' + c.faq.map((f) => '<p class="small"><strong>' + esc(f.q) + '</strong><br>' + esc(f.a) + '</p>').join('') : '') + '</div>' +
           '<div class="preview-pane" data-pane="1">' + (sched.length ? sched.map(dayHtml).join('') : '<p class="muted">No programme.</p>') + '</div>' +
-          '<div class="preview-pane" data-pane="2">' + ((c.speakers || []).length ? '<div class="grid grid-2">' + c.speakers.map((s) => '<div class="speaker-card" style="cursor:default">' + UI.avatar(s) + '<span><span class="name">' + esc(s.name) + '</span><span class="role" style="display:block">' + esc(s.title) + (s.org ? ', ' + esc(s.org) : '') + '</span>' + (s.linkedin ? '<a class="small" href="' + esc(s.linkedin) + '" target="_blank" rel="noopener">LinkedIn</a>' : '') + '<span class="small muted" style="display:block;margin-top:.35rem">' + esc(Engine.bioFor(s)) + (s.bioDraft ? ' <em>(draft, pending approval)</em>' : '') + '</span></span></div>').join('') + '</div>' : '<p class="muted">No speakers yet. Sessions show “Speakers to be announced” until you add them.</p>') + '</div>' +
+          '<div class="preview-pane" data-pane="2">' + ((c.speakers || []).length ? '<p class="small muted">' + c.speakers.filter((s) => s.supplied).length + ' supplied · ' + c.speakers.filter((s) => s.proposed).length + ' proposed placeholders (shown as “Invited” on the site) · ' + c.speakers.filter((s) => s.researched).length + ' with researched biographies</p><div class="grid grid-2">' + c.speakers.map((s) => '<div class="speaker-card" style="cursor:default">' + UI.avatar(s) + '<span><span class="name">' + esc(s.name) + '</span><span class="role" style="display:block">' + esc(s.title) + (s.org ? ', ' + esc(s.org) : '') + '</span><span style="display:flex;gap:.3rem;flex-wrap:wrap;margin:.3rem 0">' + (s.supplied ? '<span class="badge badge-accent">Supplied</span>' : '<span class="badge">Proposed</span>') + (s.researched ? '<span class="badge badge-ink">Researched · ' + (s.bioSources || []).length + ' source' + ((s.bioSources || []).length === 1 ? '' : 's') + '</span>' : (s.linkedin && s.researchNote ? '<span class="badge">Profile not matched</span>' : '')) + '</span>' + (s.linkedin ? '<a class="small" href="' + esc(s.linkedin) + '" target="_blank" rel="noopener">LinkedIn</a>' : '') + '<span class="small muted" style="display:block;margin-top:.35rem">' + esc(Engine.bioFor(s)) + (s.bioDraft ? ' <em>(draft, pending approval)</em>' : '') + '</span>' + (s.bioSources && s.bioSources.length ? '<span class="small" style="display:block;margin-top:.35rem">Sources: ' + s.bioSources.slice(0, 4).map((u, i) => '<a href="' + esc(u) + '" target="_blank" rel="noopener">[' + (i + 1) + ']</a>').join(' ') + '</span>' : '') + (s.researchNote && !s.researched ? '<span class="small muted" style="display:block;margin-top:.35rem">' + esc(s.researchNote) + '</span>' : '') + '</span></div>').join('') + '</div>' : '<p class="muted">No speakers yet. Sessions show “Speakers to be announced” until you add them.</p>') + '</div>' +
           '<div class="preview-pane" data-pane="3"><h4>' + esc(c.venue.name) + '</h4><p class="muted">' + esc(c.venue.address) + '</p><p>' + esc(c.venue.description) + '</p><h4>Hotel plan</h4>' + (c.hotels || []).map((h) => '<div class="sub-card"><strong>' + esc(h.name) + '</strong> · ' + esc(h.category) + (h.proposed ? ' <span class="badge">Proposed</span>' : '') + '<div class="small muted">' + esc(h.rate) + ' · ' + esc(h.distance) + (h.cutoff ? ' · block cut-off ' + esc(Engine.formatDate(h.cutoff)) : '') + '</div><p class="small mb-0">' + esc(h.description) + '</p></div>').join('') + '</div>' +
           '<div class="preview-pane" data-pane="4"><p class="muted">Packages in ' + esc(sp.currency) + '. Confirmed sponsors are added after contracts are signed; the public prospectus shows availability.</p><div class="table-wrap"><table class="data"><thead><tr><th>Package</th><th>Price</th><th>Slots</th></tr></thead><tbody>' + sp.tiers.map((t) => '<tr><td>' + esc(t.name) + '</td><td>' + esc(Engine.formatMoney(t.price, sp.currency)) + '</td><td>' + t.slots + '</td></tr>').join('') + '</tbody></table></div>' + (c.sponsorCategories && c.sponsorCategories.length ? '<h4 class="mt-3">Prospect categories</h4><ul class="list-check">' + c.sponsorCategories.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '') + '</div>' +
           '<div class="preview-pane" data-pane="5"><div class="table-wrap"><table class="data"><thead><tr><th>Pass</th><th>Until</th><th>Price</th></tr></thead><tbody>' + reg.tiers.map((t) => '<tr><td>' + esc(t.name) + '</td><td>' + (t.until ? esc(Engine.formatDate(t.until)) : '—') + '</td><td>' + esc(Engine.formatMoney(t.price, reg.currency)) + '</td></tr>').join('') + reg.special.map((s) => '<tr><td>' + esc(s.name) + '</td><td>—</td><td>' + esc(Engine.formatMoney(s.price, reg.currency)) + '</td></tr>').join('') + '</tbody></table></div><p class="small muted mt-2">' + esc(reg.groupDiscount) + '</p></div>' +
@@ -478,7 +519,7 @@
       $('#publish').addEventListener('click', async () => {
         const btn = $('#publish'); btn.disabled = true; btn.textContent = 'Publishing…';
         try { await Store.publishRemote(stripMeta(c)); Store.removeLocal(c.id); UI.toast('Published to the site.'); html('#publish-note', links() + '<p class="small muted mt-1">Published to the server store. Visitors see it within about a minute.</p>'); btn.textContent = 'Republish to site'; }
-        catch (e) { html('#publish-note', '<div class="notice err">' + esc(e.message) + '</div>'); btn.textContent = 'Publish to site'; }
+        catch (e) { html('#publish-note', '<div class="notice err"><strong>Could not publish.</strong> ' + esc(e.message) + (e.status === 503 ? ' In Vercel: Storage → Create → Blob → connect to this project → redeploy.' : '') + '</div>'); btn.textContent = 'Publish to site'; }
         btn.disabled = false;
       });
       $('#export').addEventListener('click', () => download(c.id + '.json', JSON.stringify(stripMeta(c), null, 2)));
